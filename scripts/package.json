@@ -1,0 +1,20 @@
+{
+  "name": "sisonke-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e:setup": "node e2e.ts setup",
+    "e2e": "node e2e.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "17.2.1"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
+}
