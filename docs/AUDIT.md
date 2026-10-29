@@ -473,20 +473,20 @@ depends on it.
 
 Applied by the Coding agent after the audit (2026-10-29). Verification: `cargo fmt --check` and
 `cargo clippy --all-targets -- -D warnings` clean; `make test` (wasm build plus every test, including
-the `#[ignore]`d compiled-wasm tests and the adversary suite): **146 passed, 0 failed**;
+the `#[ignore]`d compiled-wasm tests and the adversary suite): **157 passed, 0 failed** (after the timelock / multisig / index round; 146 before it);
 `bash -n` on every script; `npm run typecheck` in `scripts/`. Nothing has been deployed yet, so
 the script changes are not yet exercised on a network.
 
 | ID | Status | What changed, and where |
 |---|---|---|
-| SIS-01 | **Acknowledged (documented), mitigated in tooling; timelock Deferred to v2** | Instant admin upgrade kept for v1. It is now stated as trust assumption #1 at the top of CONTRACT.md and UPGRADES.md, with the mitigations (`lock_upgrades`, multisig admin, `upgraded` hash, two-step handover). `scripts/deploy.sh` requires an explicit `ADMIN` off Testnet and refuses `ADMIN` equal to the deployer key. Crate docs in `lib.rs` say upgrades are instant. |
+| SIS-01 | **Fixed** (timelock + multisig; `lock_upgrades` still recommended before mainnet) | Upgrades are now two-step with a public delay: `propose_upgrade(hash)` stores `PendingUpgrade { wasm_hash, proposed_at, eta }` and emits `upgrade_proposed`; `upgrade()` (no argument) runs it only at `now >= eta` (204 `UpgradeTooEarly`, 203 `NoPendingUpgrade`), clearing it before the code swap. The delay is a constructor argument bounded to 60 s ..= 30 days (202), and `set_upgrade_delay` only raises it (205). `deploy.sh` uses 1 h on Testnet and requires ≥ 2 days on mainnet. `cancel_upgrade`, `lock_upgrades` and `accept_admin` clear a pending proposal, so a handover never shortens the wait. During the delay every exit works (`timelock::every_exit_works_while_an_upgrade_is_pending`, `wasm::compiled_v1_timelocked_upgrade_to_fixture`, model test). The admin is now a native multisig account (`scripts/multisig-admin.sh`: 2-of-3, master weight 0), the default on Testnet; off Testnet `deploy.sh` requires an explicit admin ≠ deployer. Admin calls are signed by M signers via `scripts/admin.ts`; the host's multisig check is documented in UPGRADES.md "Multisig admin". |
 | SIS-02 | **Fixed (docs)** | CONTRACT.md rule 5 now says it holds only if the arbiter is independent of the payer, and trust assumption 3 notes the sybil arbiter; `lib.rs` crate docs reworded. The recipient-accept step stays deferred (PLAN §10.6). |
 | SIS-03 | **Fixed** | `deploy.sh` has a per-network table (Testnet and Mainnet Circle USDC issuer + SAC id) and refuses any other network. It requires the derived SAC id to match, never runs `contract asset deploy` outside Testnet, and checks `decimals() == 7` and `token()` after deploy. |
 | SIS-04 | **Fixed** | `deploy.sh` refuses to replace an existing `deployments/<network>.env` unless `FORCE=1`. It prints the old instance's `total_locked` and keeps a timestamped `.bak` copy. `upgrade-demo.sh` uses `FORCE=1` only for its own demo env file. |
 | SIS-05 | **Fixed** | `upgrade.sh` refuses the upgrade fixture (by hash) unless `ALLOW_FIXTURE=1`, which only `upgrade-demo.sh` sets; the demo also refuses to target the main deployment. It requires the wasm to export `upgrade`, `lock_upgrades`, `migrate`, `version`, `storage_version`, the admin functions and the escrow functions (`stellar contract info interface --wasm`). It reads `sisonke_version` / `sisonke_storage_version` from new `contractmeta!` entries and requires the version to rise unless `ROLLBACK=1`, and the storage version to be stored or stored + 1. It asks for confirmation unless `YES=1`, then fetches the live code and compares its hash with the uploaded one. New tests `wasm_meta_matches_version_constants` and `fixture_meta_says_version_two` keep the metadata honest. |
 | SIS-06 | **Fixed** | The rule is now: any new `DataKey`/`Status`/`PartyRole` variant, `Escrow` field or type change is a layout change that bumps `STORAGE_VERSION`, so the storage guard makes a rolled-back old version refuse writes instead of silently dropping fields. The full frozen list (including `PartyRole` names and every field type) is in the `types.rs` header and UPGRADES.md "Storage ABI: what is frozen". The fixture now declares all 11 `DataKey` variants and reads pending admin, token, pause flag and the party index; `admin_upgrade_preserves_address_storage_and_funds` decodes them. |
 | SIS-07 | **Fixed** | `create` / `create_and_fund` now reject a title that is not valid UTF-8 or contains a byte `< 0x20` or `0x7F`, with new error **128 `InvalidTitle`** (appended; nothing renumbered), checked after the length cap (126). The check copies the title into a 64-byte stack buffer and uses `core::str::from_utf8` (`lib.rs` `validate_title`). Test: `validation::title_must_be_utf8_without_control_bytes`. CONTRACT.md says printable Unicode (bidi, zero-width, HTML) is still allowed and the UI must escape it. |
-| SIS-08 | **Acknowledged (documented)** | CONTRACT.md "Index spam": anyone can name any address as recipient or arbiter of an unfunded escrow; the UI must label unfunded escrows and escape titles. Covered by `adversary::stranger_can_spam_victims_index_but_not_its_funds` and `index::spam_escrows_do_not_touch_other_parties_index`. |
+| SIS-08 | **Fixed** | `create` now indexes an escrow only for its payer; the recipient and arbiter get it when it is funded (`fund` / `create_and_fund`), so unfunded spam never reaches anyone else's list and a cancelled-before-funding escrow never does either. Funded spam costs the sender the full amount. Tests: `index::index_records_payer_recipient_and_arbiter`, `index::spam_escrows_do_not_touch_other_parties_index`, `adversary::stranger_can_spam_victims_index_but_not_its_funds` (updated for this behaviour), model test. Web-app duties (label `Created` as "Awaiting deposit — not funded", escape titles) are in INTEGRATION.md. |
 | SIS-09 | **Acknowledged (documented)** | CONTRACT.md trust assumption 4 now covers payer-side trustlines and freezes, splits needing both transfers, and a freeze or clawback of the contract's own balance. |
 | SIS-10 | **Fixed (docs)** | CONTRACT.md "Error precedence" says 141 and 100 come before auth and lists the other pre-auth errors (104, 201, 141 on `lock_upgrades`, 105). The `create_and_fund` error list adds 143 and the SAC error note. The I4 wording in CONTRACT.md now reads "refused (101 for a party signer) and change nothing". PLAN.md §8 is left as written (binding spec). |
 | SIS-11 | **Fixed (docs)** | CONTRACT.md "Functions versus statuses": a function → signer → status table, and a complete "final status × function × signer × event × `closed_by`" table. |
@@ -495,3 +495,199 @@ the script changes are not yet exercised on a network.
 | SIS-14 | **Acknowledged (documented), mitigated in tooling** | CONTRACT.md Security model "A pending migration blocks exits" (anyone can end it by calling `migrate`), and UPGRADES.md "Versions". `upgrade.sh` refuses a storage version that skips ahead, and warns loudly when writes will be blocked. |
 | SIS-15 | **Acknowledged (documented); event and expiry changes Deferred to v2** | CONTRACT.md "Admin writes" lists: pause survives `lock_upgrades`, the role can't be renounced, proposals never expire, the cancel event doesn't name the address, self-proposals are harmless, `paused` emits on no-op, and rule 6 is about the role, not the address. |
 | SIS-16 | **Fixed (scripts); gas/style items Acknowledged** | `deploy.sh` reads the deploy ledger **before** deploying, records the deploy tx hash when the CLI prints one, and checks formats (wasm hash, contract and account ids, ledger number, uploaded hash == local file hash). It records `git describe --always --dirty` as `SISONKE_SOURCE_REV` and refuses an uncommitted tree off Testnet. `upgrade.sh` checks formats and versions; `upgrade-demo.sh` checks its balances are numeric. The redundant `by` fields, the no-op `paused` event and `Escrow.token` are kept unchanged (event/storage ABI, forward compatibility). |
+
+## Round 2: timelock, multisig admin, funded-only index
+
+| | |
+|---|---|
+| Target | Working tree on top of `67c8800` (`git diff HEAD` plus untracked `scripts/admin.ts`, `scripts/multisig-admin.sh`, `docs/INTEGRATION.md`, `src/test/timelock.rs`). `src/test/adversary_timelock.rs` (being written concurrently) is out of scope. |
+| Changes | (A) upgrade timelock: constructor `upgrade_delay` (60 s ..= 30 days), `propose_upgrade` / `cancel_upgrade` / `upgrade()` at `now >= eta` / increase-only `set_upgrade_delay`; `lock_upgrades` and `accept_admin` clear the proposal. (B) native Stellar multisig admin (`multisig-admin.sh`, `admin.ts`, `deploy.sh`, `upgrade.sh`, `upgrade-demo.sh`). (C) recipient and arbiter index entries written only on funding. |
+| Host semantics | Checked in `~/.cargo/registry/src/index.crates.io-*/soroban-env-host-29.0.1` and `soroban-sdk-29.0.1`; the JS signing path in `scripts/node_modules/@stellar/stellar-sdk` 17.2.1 (`lib/esm/base/auth.js`). |
+| File hashes (SHA-256) | `lib.rs` `16dd6b26…`, `storage.rs` `8423874e…`, `types.rs` `5b58aa09…`, `errors.rs` `015d964c…`, `events.rs` `b214f2f4…`, `admin.ts` `4329a198…`, `multisig-admin.sh` `9fbebef4…`, `deploy.sh` `040a9fde…`, `upgrade.sh` `a9ccb811…`, `upgrade-demo.sh` `5264f208…` |
+| Test run | `cargo test -p sisonke-escrow` (separate target dir): **150 passed, 0 failed, 7 ignored**. That's consistent with the "157" in §9, which includes the ignored compiled-wasm tests run by `make test`. |
+| Result | **No Critical, High or Medium findings.** 6 Low, 3 Informational. The on-chain timelock has no bypass. The residual risk is in what the docs promise users during the delay, and in multisig tooling that doesn't yet deliver independent signers. |
+
+### R2.1 Timelock review: what holds
+
+- **No bypass.** `update_current_contract` is reached only from `upgrade()` (`lib.rs:610-626`). That path needs `Admin.require_auth()`, `!UpgradesLocked`, a stored `PendingUpgrade` and `ledger.timestamp() >= eta`. `propose_upgrade` sets `eta = now + delay` with `delay >= 60`, so propose and execute can't share a ledger. Re-proposing overwrites the single slot with a fresh `proposed_at`/`eta` (`lib.rs:578-586`), so a proposal can't be swapped for another hash without restarting the delay. `set_upgrade_delay` only raises the delay and never touches a pending `eta` (`lib.rs:631-644`), so it can't shorten one. `accept_admin` clears the old admin's proposal (`lib.rs:555`), so a handover gives no head start. `upgrade()` clears the proposal before the swap (`lib.rs:621`), so the new code never inherits a runnable proposal. The host refuses an unknown hash in `update_current_contract_wasm` (`soroban-env-host host.rs:2452-2461`, `verify_wasm_exists`). The whole transaction then reverts and the proposal survives, as CONTRACT.md says.
+- **Arithmetic.** `now.checked_add(delay)` (`lib.rs:582-584`): `delay <= 2_592_000`, so the add can only overflow at a timestamp within 30 days of `u64::MAX`. The comparison `timestamp < eta` matches the documented boundary (refused at `eta - 1`, allowed at `eta`, tested).
+- **Storage tier and TTL.** `UpgradeDelay` and `PendingUpgrade` are **instance** keys (`storage.rs:105-129`). They live inside the contract-instance ledger entry and can't be archived on their own. A missing key means the whole instance is missing. Every admin write first calls `extend_instance`, which extends instance **and code** (`soroban-sdk storage.rs:616-646`) to 120 days whenever fewer than 60 remain. A proposal therefore always has more than 60 days of TTL, which exceeds `MAX_UPGRADE_DELAY`, so it can't archive during its own delay. Failure mode if the instance does archive (about 60-120 idle days): reads (`pending_upgrade`, `info`) fail in simulation, while an `InvokeHostFunction` that restores the entry (Protocol 23 auto-restore) brings `PendingUpgrade` back with its old `eta`. That combines with SIS-18. `UpgradeDelay` is read with `unwrap()`. That's sound on an instance built by this constructor, and fatal on one that isn't (SIS-22).
+- **Events.** `upgrade_proposed {new_wasm_hash, proposed_at, eta}`, `upgrade_cancelled {wasm_hash}` (cancel, lock, handover), `upgraded {new_wasm_hash, from_version}`, `upgrade_delay_changed`, and `init` carrying the delay together give a banner what it needs. The host also emits its own executable-update event (`host/lifecycle.rs:50-59`). The gaps (replacement, no expiry signal) are in SIS-24.
+- **Exits during the delay.** None of the exit functions read upgrade state. Pause gates only `create`/`create_and_fund`/`fund`. `timelock::every_exit_works_while_an_upgrade_is_pending` exercises every exit. So the code delivers what it promises; the *promise as worded* is broader than the code (SIS-17). With a pending migration, exits are blocked for at least one full delay (SIS-19).
+
+### R2.2 Multisig: host semantics verified
+
+UPGRADES.md "What the Soroban host checks" is accurate, with one exception (SIS-25):
+
+| Claim | Verified at (soroban-env-host 29.0.1) |
+|---|---|
+| Address credentials: signature is a `Vec<{public_key, signature}>`, 1..=20 entries | `builtin_contracts/account_contract.rs:25, 62-67, 181-199` |
+| Strictly ascending by public key, so no duplicates | `account_contract.rs:205-216` (`compare != Less` → error) |
+| Each signature ed25519-verified over the payload | `account_contract.rs:218-222` |
+| A key with weight 0 (including a weight-0 master) fails the whole entry, even if others reach the threshold | `account_contract.rs:224-236`; master weight from `thresholds[MasterWeight]`, others from `signers` (clamped to 255): `host/data_helper.rs:513-558` |
+| Sum of weights `>=` **MEDIUM** threshold | `account_contract.rs:245-262` |
+| Account entry loaded from storage, so it must be in the footprint | `account_contract.rs:200`, `data_helper.rs:469-480` |
+| Payload = sha256(XDR `HashIdPreimage`): network id, nonce, `signature_expiration_ledger`, invocation; `ADDRESS_V2`/`WITH_DELEGATES` add the address | `auth.rs:2631-2662` (`uses_preimage_with_address`, `auth.rs:592-594`) |
+| Expiration enforced (`ledger_seq <= expiration <= max_live_until`), nonce consumed as a temporary entry, replay refused | `auth.rs:2586-2619`, `auth.rs:2958-3010` |
+| Source-account credentials: the host performs no signature check | `auth.rs:2665-2672` (`if is_transaction_source_account() { return Ok(()) }`), and no nonce `auth.rs:2587-2589`. The threshold applied to the tx signatures is stellar-core's, which isn't in this crate (InvokeHostFunction uses the default MEDIUM operation threshold; not verifiable here). |
+| Recording simulation emulates one signature, and records `AddressV2` when the RPC asks for it | `auth.rs:2725-2760`, `auth.rs:2431-2460`, `e2e_invoke.rs:622-650` (`use_address_v2`) |
+
+`scripts/admin.ts` produces exactly what the host expects. `authorizeInvocation` (SDK `auth.js:136-164`) builds `ADDRESS` or `ADDRESS_V2` credentials with a random int64 nonce. Its preimage (`auth.js:165-201`) is `sha256(passphrase)` + nonce + `validUntilLedgerSeq` + invocation (+ address for V2), identical to `auth.rs:2631-2662`. `multisigSignature` (`admin.ts:176-189`) sorts by raw 32-byte key with `Buffer.compare`, the same byte order as the host's `BytesN` compare. Each map's keys are `public_key` < `signature`, which sorts correctly. The invocation has no sub-invocations, and the admin functions make no nested `require_auth`. Expiration is the latest ledger + 100. It doesn't dedupe signers: a duplicated identity fails on-chain as "not ordered", which is safe. The credential type comes from the network's own recording simulation (`admin.ts:161-173`).
+
+`multisig-admin.sh`, from a fresh account, produces a correct M-of-N: weight-1 signers added under the master key, then one `set-options` (authorized at the pre-op thresholds) that sets master weight 0 and low/med/high to M (`multisig-admin.sh:116-118`). After that, changing signers, thresholds or merging (HIGH) needs M signers, so no single signer can take over. The re-run path is the weak spot (SIS-20).
+
+`deploy.sh` enforces an explicit `ADMIN` off Testnet that isn't the deployer (`deploy.sh:118-121`), a mandatory `UPGRADE_DELAY >= 172800` off Testnet (`deploy.sh:129-137`), and reads `upgrade_delay` back after deploy (`deploy.sh:212`).
+
+### R2.3 Funded-only index review
+
+`create` pushes only `(payer, Payer)` (`lib.rs:157`). `fund` pushes recipient and arbiter (`lib.rs:180`, `index_counterparties` `lib.rs:795-801`). `create_and_fund` pushes all of them (`lib.rs:211-212`). `fund` requires `Status::Created` and moves the escrow to `Funded` in the same call, so no transition runs it twice. There are therefore **no duplicates**: payer ≠ recipient ≠ arbiter is enforced (`lib.rs:730-740`), each role is pushed at most once per escrow, and `create_and_fund` never meets `fund`. **Ordering:** a payer's pages are in id/creation order. Recipient and arbiter pages are in funding order, which is not id order, because `fund` can happen any time before the deadline. **Page boundaries** are unchanged (`storage.rs:230-239`: page `count / 50`, two writes). A failed transfer reverts the index writes with everything else. Unfunded and cancelled-before-funding escrows never reach a counterparty's list. Funded spam remains cheap (SIS-23).
+
+### R2.4 Findings
+
+| ID | Title | Severity | Status |
+|---|---|---|---|
+| SIS-17 | "Every escrow can still be exited" overstates the delay: a payer can't recover funds before the deadline without the recipient or the arbiter | Low | Open |
+| SIS-18 | Matured proposals never expire: once `eta` passes, the upgrade can run at any later moment, with no fresh notice | Low | Open |
+| SIS-19 | No emergency path: with a pending migration, every exit stays blocked for at least one full (increase-only) delay | Low | Open |
+| SIS-20 | `multisig-admin.sh` re-run and `deploy.sh` off Testnet don't verify the full M-of-N configuration (high/low thresholds, signer weights, extra signers) | Low | Open |
+| SIS-21 | Signing tooling puts all signer keys on one machine; there's no flow for independent signers | Low | Open |
+| SIS-22 | The recorded Testnet deployment is still the instant-upgrade, single-key build, and the new code can't be installed on it in place | Low | Open |
+| SIS-23 | SIS-08 residual: funded spam costs one stroop for one second, not "the full amount" | Informational | Open |
+| SIS-24 | Event/ABI gaps for watchers: replacement has no cancel event, `upgrade()` doesn't bind the hash, the export check ignores signatures | Informational | Open |
+| SIS-25 | Doc precision: error surfaced for a failed multisig check, "oldest first", mainnet delay is policy only | Informational | Open |
+
+#### SIS-17: "Every escrow can still be exited" overstates the delay
+
+**Severity:** Low · **Location:** `lib.rs:562-567` (doc comment), `docs/CONTRACT.md:21-24, 376-379`, `docs/UPGRADES.md:13-15, 48`, `docs/INTEGRATION.md:24-28`, `README.md:7-10`
+
+**Description.** During the delay, each exit function works, but a **payer** can only get funds *back* via `reclaim` after the deadline, or with the recipient's `refund`, or with an arbiter's `resolve` on a disputed escrow. Before the deadline, the payer's only unilateral exit is `release`, which pays the recipient. A disputed escrow can't be reclaimed at all. `MAX_DURATION` is 365 days, while `MAX_UPGRADE_DELAY` is 30 days and the mainnet policy is 2 days, so most open escrows have deadlines beyond `eta`. The timelock test confirms this: it asserts `DEADLINE > eta`, and its payer exit is a release. What the delay does guarantee is weaker but real: **any one party can move the funds to a legitimate party (the other side) before `eta`**, so a malicious upgrade can only take escrows nobody acted on. The INTEGRATION banner text ("release, refund, reclaim or resolve your escrows before then") reads as if each user can rescue their own money.
+
+**Recommendation.** Reword CONTRACT.md trust assumption #1, UPGRADES.md, the `lib.rs` docs and the banner text. Say that the delay lets either party send the funds to the counterparty, and that recovering them for yourself before the deadline needs the counterparty's `refund` / `release` or the arbiter. Tell the web app to prompt counterparties of open escrows to settle cooperatively when a proposal appears. Size the mainnet delay against typical response times, not just "2 days". If a real unilateral exit is wanted, it needs a design change (for example, a mutual-exit request that either party can trigger and the other can accept), not a timelock tweak.
+
+#### SIS-18: Matured proposals never expire
+
+**Severity:** Low · **Location:** `lib.rs:572-589`, `lib.rs:610-626`; `docs/INTEGRATION.md:24-28`
+
+**Description.** A proposal stays executable indefinitely after `eta`, until it is run or cancelled. The admin can propose, let the banner run for weeks until users stop reacting, then execute without notice. Escrows created or funded **after** `eta` get no delay at all: `create`/`fund` are allowed with a matured proposal pending. Combined with instance archival (R2.1), a stale proposal may not even be readable through simulation while an auto-restoring `upgrade()` can still run it. SIS-15 already notes that admin proposals never expire; the same choice now affects code upgrades, where it matters more. Compound's Timelock uses a 14-day `GRACE_PERIOD` for this reason.
+
+**Recommendation.** Add an execution window: `upgrade()` refuses after `eta + GRACE` (for example 7 days) with a new error, and the proposal must be re-made, which restarts the delay. Short of that, the banner must change after `eta` to "can take effect at any moment". The web app (or the contract) should warn on, or refuse, `create`/`fund` while a matured proposal is pending.
+
+#### SIS-19: No emergency path while a migration is pending
+
+**Severity:** Low · **Location:** `lib.rs:690-695` (`ensure_storage_current` on every exit), `lib.rs:610-619`, `lib.rs:631-644`; `docs/UPGRADES.md:55-57, 112-116`
+
+**Description.** SIS-14 (exits blocked while `storage_version != STORAGE_VERSION`) used to be fixable at once by an upgrade. Now the fix must wait a full `upgrade_delay`: at least 2 days on mainnet, up to 30 days, and the delay can only rise. The trigger can be a migration that runs out of budget, a v3 installed onto layout 1, or a rollback after a migrate. In that state every `release`/`refund`/`reclaim`/`dispute`/`resolve` returns 141 for at least the delay. `migrate` is permissionless but can't help if it is the broken part. No funds are lost, but this is the one admin-triggered state in which nobody can exit, and the timelock lengthens it.
+
+**Recommendation.** Document the worst case ("a broken migration freezes exits for at least `upgrade_delay()`") in CONTRACT.md's Security model, and make migration rehearsal on a copy of real data a release gate. Optionally, allow an immediate `upgrade()` only back to the wasm hash that was running before the last upgrade, and only while that upgrade's migration hasn't completed. That's narrow enough not to reopen SIS-01, since the old code has already been public for at least one delay. Think twice before raising the delay to 30 days.
+
+#### SIS-20: The M-of-N configuration isn't fully verified on re-run or off Testnet
+
+**Severity:** Low · **Location:** `scripts/multisig-admin.sh:97, 111-112, 122-124`; `scripts/deploy.sh:118-122`
+
+**Description.** The "already configured" branch (`:111`) and the final checks (`:122-124`) verify only master weight 0 and `med_threshold == M`. They don't check `low_threshold` or `high_threshold`. A signer counts as present if its weight is `>= 1` (`:97`), so a weight-2 signer passes with M = 2, and signers that aren't `<NAME>-signer-i` (other keys, pre-auth tx, hash-x, signed-payload) are ignored. On mainnet the script requires a **pre-existing** account, which is exactly where an inherited configuration is likely. Example: an account with `high_threshold 1`, or one signer of weight 2, is reported as "2-of-3 with the master key disabled". Yet one key can then run `set_options` (HIGH) to add itself at weight 255 or reset thresholds, taking full admin control. Off Testnet, `deploy.sh` checks only that `ADMIN` is set and isn't the deployer. A single-key account (or one that later rotates to single control) is accepted.
+
+**Recommendation.** One shared check, used by `multisig-admin.sh` (both branches) and by `deploy.sh` for any `ADMIN` G-address, that requires:
+- master weight 0;
+- low = med = high = M (or at least med and high `>= M`);
+- the signer set exactly equal to the expected keys, each of weight 1, with no other signer types.
+
+Print the account's signers in the deploy summary. Note in UPGRADES.md that the contract itself can't enforce this, and that `propose_admin` can hand the role to any address.
+
+#### SIS-21: Signing tooling puts all signer keys on one machine
+
+**Severity:** Low · **Location:** `scripts/multisig-admin.sh:62-75` (`identity … nofund` generates missing signer keys locally on any network), `scripts/admin.ts:94-102, 235-237`; `docs/UPGRADES.md:265-266`
+
+**Description.** `admin.ts` needs the M signers' **secret keys in one process**, read from the local `stellar` keystore or passed as `S…` on the command line, where they land in shell history and `ps`. There's no way to collect signatures from signers on different devices. `multisig-admin.sh` silently creates any missing `<NAME>-signer-i` as a fresh local key, including on mainnet. So following the tooling yields N keys plus the master secret in plaintext under the operator's `stellar` config. That is exactly SIS-01's exploit scenario: malware reading the identity directory still obtains full admin power. The difference now is that it must wait out a public delay (1 h on Testnet, at least 2 days on mainnet) rather than act instantly. The docs' "keys held by different people" advice can't be followed with the provided tools.
+
+**Recommendation.** Split `admin.ts` into three steps:
+1. `prepare`: write the auth entry, nonce, expiration and payload hash to a file.
+2. `sign --signer <key>`: run on each signer's own device, output one `{public_key, signature}`.
+3. `submit`: sort, assemble, enforce-simulate and send. The SDK's `authorizeEntry` with a `signatureScVal` callback already supports this.
+
+Refuse to generate signer keys off Testnet, and accept public-key-only identities there. Never accept secrets on argv.
+
+#### SIS-22: Recorded Testnet deployment is the pre-timelock build
+
+**Severity:** Low · **Location:** `deployments/testnet.env` (`SISONKE_WASM_HASH=52c4582b…`, `SISONKE_ADMIN=GCAD4LP7…`); `storage.rs:105-111`; `README.md:21`, `docs/CONTRACT.md:11-15`, `docs/INTEGRATION.md:10-11`
+
+**Description.** The deployment that integrators are told to read is the instant-upgrade build: its hash is the "v1 wasm hash" of the superseded run in `UPGRADES.md:303`. Its admin is `GCAD4LP7…`, which is the local `sisonke-deployer` hot key. So on Testnet today SIS-01 is fully live, while every doc describes a timelocked multisig instance, and `bindings.sh` would generate a client without the timelock ABI. The new code also can't be installed onto that instance in place. If someone used its old `upgrade(hash)` to install this build (same `VERSION` 1 / `STORAGE_VERSION` 1), `DataKey::UpgradeDelay` would be absent, and `storage::upgrade_delay`'s `unwrap()` would trap in `propose_upgrade`, `set_upgrade_delay`, `upgrade_delay()` and `info()` forever. That freezes the code (no proposal can ever be stored) and breaks the web header read. `upgrade.sh` can't do this by accident, because it first calls `pending_upgrade()`, which the old build lacks. PLAN/UPGRADES say "fresh pre-release redeploy", but nothing marks the recorded instance as superseded.
+
+**Recommendation.** Redeploy (`FORCE=1 make deploy`) before publishing any docs that point at `deployments/testnet.env`, and keep the old id only as history in TRANSACTIONS.md. Make `upgrade_delay()` fail safe (`unwrap_or(MAX_UPGRADE_DELAY)`), so that an instance missing the key still gets the strictest delay rather than a trap. If an in-place path from the old build is ever wanted, treat it as a layout change (`STORAGE_VERSION` 2 with a `migrate` that writes the delay).
+
+#### SIS-23: SIS-08 residual: funded spam is nearly free
+
+**Severity:** Informational · **Location:** `lib.rs:190-217` with `lib.rs:741-746` (`deadline > now`, no minimum duration) and `lib.rs:727` (`amount > 0`); `docs/CONTRACT.md:261-262`, `docs/INTEGRATION.md:89-90`, AUDIT §9 SIS-08 row
+
+**Description.** An attacker calls `create_and_fund(amount = 1, deadline = now + 1, title = "Refund from Acme…")`, then `reclaim` a ledger later. This costs 10⁻⁷ USDC for about 5 seconds, plus fees and rent. The victim's `Recipient` (and any `Arbiter`) index keeps the entry permanently, shown as a closed `Refunded` escrow with the attacker's title. "Costs the sender the full amount (which the recipient can then refund)" is therefore wrong: the sender gets the amount back by itself, and a recipient refund only spends the victim's fees. Unfunded spam is gone; cheap funded spam isn't.
+
+**Recommendation.** Correct CONTRACT.md, INTEGRATION.md §7 and the remediation row. In the web app, collapse closed escrows the user never interacted with, and those below a minimum amount or with a lifetime under, say, an hour. If it matters on-chain, add a minimum duration (for example `deadline >= now + 1 h`) and/or a minimum amount.
+
+#### SIS-24: Event/ABI gaps for upgrade watchers
+
+**Severity:** Informational · **Location:** `lib.rs:586-587`, `lib.rs:610`, `scripts/upgrade.sh:167-180`
+
+**Description.**
+- Replacing a proposal emits a second `upgrade_proposed` but no `upgrade_cancelled` for the replaced hash, so an indexer that tracks open proposals by hash shows both.
+- `upgrade()` takes no argument, so each signer's auth payload approves "run whatever is pending" rather than a specific hash. This is sound today (one slot, a re-proposal resets `eta`, and the signature expires after 100 ledgers), but an `upgrade(expected_hash)` that must equal the pending hash would make every co-signature explicit.
+- `upgrade.sh`'s export check compares names only, so a v2 that brings back an instant `upgrade(new_wasm_hash)` passes it.
+- `propose_upgrade` can't check that the wasm is uploaded (documented), so a banner may link a hash whose code isn't public yet.
+
+**Recommendation.** Emit `upgrade_cancelled` (or put a `replaced: Option<BytesN<32>>` field on `upgrade_proposed`) when a proposal replaces another. Consider `upgrade(expected_hash)`. Check function signatures (`upgrade()` with zero params, `propose_upgrade(new_wasm_hash: BytesN<32>)`) in `upgrade.sh`. Have the banner check the `ContractCode` ledger entry and say "code not yet published" when it is missing.
+
+#### SIS-25: Documentation precision
+
+**Severity:** Informational · **Location:** `docs/UPGRADES.md:80, 16`; `lib.rs:431-432`; `types.rs:171`; `docs/PLAN.md:466`; `docs/CONTRACT.md` admin-writes table
+
+**Description.**
+- UPGRADES.md:80 says every failure of the account check is `Error(Contract, #5)`. In fact a bad signature is `Error(Crypto, InvalidInput)` (`crypto/mod.rs:89-96`), a missing account entry is a storage error, and every recoverable failure is re-raised as **`Error(Auth, InvalidAction)`** (`auth.rs:2496-2510`). `#5` appears only as a diagnostic argument. `upgrade-demo.sh:110` already accepts both.
+- The `party_escrow_ids` doc comment and the `PartyPage` doc still say "oldest first". For recipient and arbiter the order is funding order, and PLAN I13 still says "creation order" (noted in PLAN §15, but not in the invariant).
+- "Mainnet at least 2 days" (UPGRADES.md:16, README) is `deploy.sh` policy. The contract accepts 60 s on any network, so integrators must read `upgrade_delay()` rather than assume it.
+- `propose_upgrade` can also return 143 (`Overflow`; unreachable in practice), which the admin-writes table omits.
+- `upgrade-demo.sh`'s "execute before the eta must fail" step has a 60 s window. Slow RPC could make it succeed and abort the demo (fail-safe).
+
+**Recommendation.** Fix the wording as above. State that the threshold applied to source-account credentials is stellar-core's, and that the scripts never use that path for the admin.
+
+### R2.5 Updated verdicts for SIS-01 and SIS-08
+
+| ID | Claimed | Verdict | Reason |
+|---|---|---|---|
+| SIS-01 | Fixed | **Partially fixed. Timelock: Fixed. Multisig: Mitigated in tooling only. Testnet: Not yet applied.** | The on-chain timelock is correct and has no bypass (R2.1). An upgrade now needs a public `upgrade_proposed` at least `upgrade_delay()` before it runs, during which either party can move every escrow's funds to a legitimate party. Residuals: the delay's protection is cooperative for payers (SIS-17); a matured proposal never expires (SIS-18); the multisig isn't enforced on-chain, its verification is incomplete (SIS-20), and the provided signing flow puts every key on one machine (SIS-21); the recorded Testnet instance is still the instant, single-key build (SIS-22). Residual severity: **Low**. `lock_upgrades` before mainnet remains the only complete fix. |
+| SIS-08 | Fixed | **Fixed for unfunded spam; residual Informational (SIS-23).** | Unfunded and cancelled escrows can no longer reach a recipient's or arbiter's list (R2.3, no duplicates, ordering documented). Funded spam costs 1 stroop for one ledger plus fees, not "the full amount", so the remediation row and CONTRACT.md/INTEGRATION.md overstate the cost. |
+
+### R2.6 Invariants for the new behaviour
+
+- **T1 (no early code):** the executable changes only inside `upgrade()`, and only when the `PendingUpgrade` present at that call has `eta <= now`. Every `eta` was set to `proposed_at + delay` with `delay >= 60` and `delay >= ` every earlier delay. Holds (`lib.rs:572-626`).
+- **T2 (one proposal):** at most one `PendingUpgrade` exists. Replacing it resets `proposed_at` and `eta`. `cancel_upgrade`, `lock_upgrades`, `accept_admin` and `upgrade` all remove it. Holds.
+- **T3 (monotone delay):** `UpgradeDelay` never decreases and stays within 60 ..= 2 592 000. A pending `eta` is never changed by `set_upgrade_delay`. Holds.
+- **T4 (lock is final):** after `lock_upgrades`, no `PendingUpgrade` exists and `propose_upgrade`/`upgrade` return 200 (in this code; future code is trust assumption 3). Holds.
+- **T5 (exits independent of upgrades):** no exit function reads `UpgradeDelay` or `PendingUpgrade`, and pause never gates an exit. Exits are blocked only by `ensure_storage_current` (SIS-14/SIS-19). Holds. The user-facing meaning of "exit" is SIS-17.
+- **T6 (proposal survives its delay):** every write that creates a proposal extends the instance to at least 60 days of TTL, which exceeds `MAX_UPGRADE_DELAY`, so a proposal can't archive before its `eta`. Holds, given the network `max_entry_ttl` exceeds 60 days.
+- **T7 (funded-only counterparty index):** an escrow id is in `(recipient, Recipient)` and `(arbiter, Arbiter)` exactly once if and only if it has ever been `Funded`, appended at funding time. It is in `(payer, Payer)` exactly once from creation. PLAN I13 should be restated this way. Holds.
+- **T8 (admin authority):** the contract enforces only `Admin.require_auth()`. "M-of-N, no single key" holds only while the admin account's on-chain configuration says so (SIS-20). For address credentials the host requires distinct, sorted, nonzero-weight signers whose total reaches the MEDIUM threshold (R2.2).
+
+### R2.7 Round 2 remediation
+
+Applied by the Coding agent (2026-10-29). Verification: `cargo fmt --check` and
+`cargo clippy --all-targets -- -D warnings` clean; `make test` (wasm build, the ignored compiled-wasm
+tests, both adversary suites) **178 passed, 0 failed**; `bash -n` on every script;
+`npm run typecheck`. Not yet exercised on a network: the scripts' new paths and the fresh Testnet
+redeploy.
+
+| ID | Status | What changed, and where |
+|---|---|---|
+| SIS-17 | **Fixed (docs)**; a structural unilateral exit is not added | Restated everywhere (`lib.rs`, `types.rs`, `events.rs` docs, CONTRACT.md box and trust assumption 1, UPGRADES.md, INTEGRATION.md §2, README): during the delay either party can move each escrow's funds out of the new code's reach, but before the deadline only toward the counterparty (payer `release`, recipient `refund`) or via the arbiter; the payer alone can only `reclaim` after the deadline. Recommends deadlines shorter than `upgrade_delay()` for a unilateral exit; the banner text spells out what each role can do, and the app warns at create/fund when the deadline exceeds the delay. Pinned by `adversary_timelock::payer_cannot_recover_funds_alone_before_eta` (unchanged). |
+| SIS-18 | **Fixed (contract)** | `PendingUpgrade.expires_at = eta + UPGRADE_WINDOW` (7 days, saturating); `upgrade` after it fails with **207 `UpgradeExpired`**, and the proposal must be made again (fresh delay). `ContractInfo.pending_upgrade_expires_at`; `upgrade_proposed` carries `expires_at`. Banner after `eta`: "can take effect at any moment until `<expires_at>`" (INTEGRATION.md §2). Tests: `timelock::proposal_runs_only_inside_its_window`, `adversary_timelock::stale_proposal_expires_after_the_window` (flipped). |
+| SIS-19 | **Acknowledged (documented)**; no emergency fast path | CONTRACT.md Security model and UPGRADES.md "Versions": the pending-migration window is normally seconds (anyone can call `migrate` right after the upgrade; `upgrade.sh execute MIGRATE=1` does); if the migration itself is broken, the remedy is upgrade-forward, which waits a full delay (worst case up to 30 days), hence mandatory migration rehearsal. `propose_upgrade` stays allowed during a pending migration. The suggested "immediate rollback to the previous hash" path was not added: it would be a second upgrade path to secure, for a state that needs a broken release to reach. |
+| SIS-20 | **Fixed (scripts)** | `multisig-admin.sh` ends every run (fresh or re-run) with a full Horizon check: master weight 0; low = med = high = M; exactly the expected N signers, each weight exactly 1; no unknown signers or other signer types; refuses otherwise (no "already configured" shortcut, and it refuses to build on an account that already has other signers). `THRESHOLD < 2` is always refused. `multisig-admin.sh verify <G…>` checks an existing account; `deploy.sh` off Testnet requires `ADMIN_SIGNER_KEYS` (+ `ADMIN_THRESHOLD`) and runs it on `ADMIN` before deploying. Exercised offline against sample Horizon payloads (bad high threshold, weight-2 signer, extra signer, enabled master, missing signer, pre-auth signer: all refused). |
+| SIS-21 | **Fixed (scripts)**; one-process mode kept for Testnet | `admin.ts prepare <op> --out req.json` / `sign req.json --key <identity \| ->` / `submit req.json`. `sign` runs on each signer's own device (no network), recomputes the payload from the auth entry and passphrase, prints network / contract / admin / function / arguments (incl. the wasm hash) before signing, refuses a request whose summary doesn't match its entry and a second signature from the same key. `submit` sorts, assembles, enforce-simulates and sends. Secrets on argv are refused everywhere; duplicate signers are refused. Off Testnet `multisig-admin.sh` never generates signer keys (`SIGNERS=G…,G…,G…` public keys only). Exercised offline: two independent signatures assemble and verify over the unchanged payload; duplicate, tampered and argv-secret cases refused. |
+| SIS-22 | **Fixed in code; redeploy pending (coordinator)** | `storage::upgrade_delay` falls back to `MAX_UPGRADE_DELAY` instead of trapping, so `propose_upgrade`, `set_upgrade_delay`, `upgrade_delay()` and `info()` never trap on a missing key (`adversary_timelock::missing_upgrade_delay_key_falls_back_to_the_max_delay`, flipped). `types.rs` and UPGRADES.md "Versions" state that the superseded instant-upgrade instance `CDYJ6GNKZCXTBSDETHTQDUTAYHLM577N46BQW4FU3ITDFMGDG3JJD2NY` must never be upgraded to this code (missing key; index double-insert, pinned by `escrow_indexed_by_old_code_gets_duplicated_on_fund`); it is history only. The fresh Testnet deploy happens after this round. |
+| SIS-23 | **Fixed (docs)**; no on-chain minimum added | CONTRACT.md and INTEGRATION.md §7 now say funded spam costs ≈ 1 stroop for one ledger plus fees (the sender reclaims). Integrators must show the amount prominently and should collapse tiny / short-lived / self-reclaimed escrows the user never touched, and let users hide escrows. The §9 SIS-08 row's "costs the sender the full amount" is superseded by this. Pinned by `adversary_timelock::funded_spam_fills_a_victims_lists_for_free` (unchanged). |
+| SIS-24 | **Fixed** | Replacing a proposal emits `upgrade_cancelled` (old hash) before `upgrade_proposed` (`timelock::replacing_a_proposal_cancels_the_old_one_first`). `upgrade(expected_wasm_hash)` binds every signature to the hash; any other is **206 `UpgradeHashMismatch`** (`timelock::upgrade_requires_the_pending_hash`, `adversary_timelock::upgrade_signature_is_bound_to_the_hash`, flipped). `upgraded` already carries the installed hash. `upgrade.sh` checks parameter types (`upgrade(BytesN<32>)`, `propose_upgrade(BytesN<32>)`, `cancel_upgrade()`, …, all escrow functions), not just names. INTEGRATION.md §2: the banner checks that the proposed wasm is published and treats unpublished code as hostile. Raising the delay also pushes a pending `eta` (`timelock::raising_the_delay_moves_a_pending_eta`, `adversary_timelock::raising_the_delay_pushes_the_pending_eta`, flipped). |
+| SIS-25 | **Fixed (docs)** | UPGRADES.md: a failed account check surfaces as `Error(Auth, InvalidAction)` (re-raised in `auth.rs` ~2492; `#5` only in diagnostics); scripts never use source-account credentials for the admin. `party_escrow_ids` / `PartyPage` docs: creation order for payer, funding order for recipient/arbiter; PLAN I13 restated. "Mainnet ≥ 2 days" marked as deploy policy (read `upgrade_delay()`). `propose_upgrade`'s 143 listed. The demo's 60 s early-execute race documented as fail-safe. |
+
+**SIS-01, updated after round 2:** *Timelock: Fixed* (no bypass; now also hash-bound, with a 7-day
+execution window, and a raised delay applies to the pending proposal). *Multisig: Fixed in tooling*
+(exact M-of-N verified on every run and before deploy off Testnet; independent-signer
+prepare/sign/submit flow; no generated keys off Testnet), but still not enforceable on-chain: the
+contract only calls `Admin.require_auth()`. *Testnet: pending the fresh redeploy.* Residual
+severity **Low**. `lock_upgrades` before mainnet remains the only complete fix.

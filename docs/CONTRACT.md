@@ -11,18 +11,41 @@ upgrades are covered in [UPGRADES.md](UPGRADES.md), and the security review is [
 | Contract | `NEXT_PUBLIC_SISONKE_CONTRACT_ID` in `deployments/testnet.env` (written by `scripts/deploy.sh`, with the deploy tx and wasm hash); every e2e transaction is linked in [TRANSACTIONS.md](TRANSACTIONS.md) |
 | Token | Circle Testnet USDC SAC `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`, pinned at construction |
 | Version | `version() == 1`, `storage_version() == 1` |
-| Upgrades | Enabled, UUPS-style, **instant**, until `lock_upgrades` (see below) |
+| Upgrades | UUPS-style, **after a public delay** (`upgrade_delay()`, set at deploy, only ever raised), until `lock_upgrades` (see below) |
+| Admin | A native Stellar multisig account (2-of-3 on Testnet, `scripts/multisig-admin.sh`) |
 | Source | [`contracts/sisonke-escrow/src`](../contracts/sisonke-escrow/src) |
 | SDK | `soroban-sdk` 29.0.1, Rust 1.99.1, target `wasm32v1-none` |
 
-> **Trust assumption #1: the admin can replace the code at any moment.** While
-> `upgrades_enabled()` is `true`, one admin signature installs new code immediately (there is no
-> timelock in v1), and new code can move every locked token. Everything below about who can move
-> funds describes **this** code. Mitigations: the admin should be a multisig account (deploy.sh
-> refuses a single deployer key off Testnet); every `upgraded` event carries the new wasm hash,
-> which anyone can check against a reproducible build; and `lock_upgrades()` makes the code final
-> forever, for every future admin. Check `upgrades_enabled()` and `admin()` before trusting an
-> instance with large amounts. Details in [Security model](#security-model).
+> **Trust assumption #1: the admin can upgrade the code after a public delay; during it, either
+> party can move each escrow's funds out of the new code's reach.** While `upgrades_enabled()` is
+> `true`, new code could move every locked token, but it can only be installed in two steps.
+> `propose_upgrade(hash)` publishes the wasm hash with an `eta` and an `expires_at`.
+> `upgrade(hash)` installs it only between `eta = proposal time + upgrade_delay()` and
+> `expires_at = eta + 7 days`, and only if it names that exact hash.
+>
+> **What "exit during the delay" means.** Every exit function keeps working while an upgrade is
+> pending, so the funds of every escrow can be moved out before `eta`. Before the escrow's
+> deadline, though, they can only go **toward the counterparty**: the payer can `release` (paying
+> the recipient), the recipient can `refund` (paying the payer back), or, in a dispute, the
+> arbiter can `resolve`. The payer alone can only take the money back with `reclaim`, and only
+> after the deadline. So a payer who distrusts a proposal and whose deadline is after `eta` needs
+> the recipient's `refund` (or the arbiter) to get their money back in time. **Parties who want a
+> unilateral exit should agree escrow deadlines shorter than the contract's `upgrade_delay()`.**
+> Check `pending_upgrade()` (or the `upgrade_proposed` event); the web app shows it as a banner
+> that says all this (INTEGRATION.md §2).
+>
+> Mitigations on top of the delay:
+> - the admin is a native multisig account, so no single key can propose or upgrade (deploy.sh
+>   verifies the exact M-of-N configuration off Testnet);
+> - the delay can only be raised, never lowered, and raising it also pushes out a pending
+>   proposal. deploy.sh uses 1 hour on Testnet and requires at least 2 days on mainnet. That is
+>   script policy: the contract itself accepts 60 s to 30 days on any network, so read
+>   `upgrade_delay()` instead of assuming it;
+> - every proposal and upgrade carries the wasm hash, which anyone can check against a
+>   reproducible build;
+> - `lock_upgrades()` makes the code final forever, for every future admin.
+>
+> Details in [Security model](#security-model) and [UPGRADES.md](UPGRADES.md).
 
 ## The rules
 
@@ -121,7 +144,7 @@ Only the escrow's arbiter can sign `resolve`.
 | `dispute(id, by)` | `by`, which must be the stored payer or recipient (else 105) | no | no |
 | `resolve(id, recipient_amount)` | the escrow's stored arbiter | no | only while Disputed |
 | `extend_escrow_ttl`, `extend_index_ttl`, `migrate` | nobody (permissionless) | yes, like anyone | yes, like anyone |
-| `set_paused`, `propose_admin`, `cancel_admin_proposal`, `upgrade`, `lock_upgrades` | the stored admin | yes | no |
+| `set_paused`, `propose_admin`, `cancel_admin_proposal`, `propose_upgrade`, `cancel_upgrade`, `upgrade(expected_wasm_hash)`, `set_upgrade_delay`, `lock_upgrades` | the stored admin (a multisig account: its signers' weights must reach its medium threshold) | yes | no |
 | `accept_admin` | the pending admin | no | no |
 
 Every signer is read from **stored** escrow or admin data, never from an argument, except
@@ -198,14 +221,22 @@ All return `Result<(), Error>`. Signer: the stored admin, unless noted.
 | `set_paused(paused)` | always (idempotent) | Blocks or unblocks `create`, `create_and_fund`, `fund` only | |
 | `propose_admin(new_admin)` | always | Names the next admin (replaces any pending one); nothing else changes | |
 | `cancel_admin_proposal()` | a proposal is pending | Clears it | 201 |
-| `accept_admin()` (signer: **pending admin**) | a proposal is pending | Pending becomes admin; the old admin loses every power | 201 |
-| `upgrade(new_wasm_hash)` | upgrades not locked | Emits `upgraded`, then swaps the code (`ContractExecutable::Wasm` only); new code runs from the next call | 200 (host error if the hash was never uploaded) |
-| `lock_upgrades()` | not locked; storage current | `upgrade` fails forever, for every admin | 141, 200 |
+| `accept_admin()` (signer: **pending admin**) | a proposal is pending | Pending becomes admin; the old admin loses every power; **any pending upgrade is cancelled** (the new admin must propose and wait again) | 201 |
+| `propose_upgrade(new_wasm_hash)` | upgrades not locked (allowed during a pending migration, so a fix can always be proposed) | Stores `PendingUpgrade { wasm_hash, proposed_at: now, eta: now + upgrade_delay, expires_at: eta + 7 days }`. A pending proposal is replaced: `upgrade_cancelled` for the old hash, then `upgrade_proposed`, with a fresh delay. Nothing else changes | 200, 143 (only within 30 days of the end of `u64` time) |
+| `cancel_upgrade()` | a proposal is pending | Clears it | 203 |
+| `upgrade(expected_wasm_hash)` | upgrades not locked; a proposal is pending; `expected_wasm_hash` is its hash; `eta <= now <= expires_at` | Clears the proposal, emits `upgraded {new_wasm_hash, from_version}`, then swaps the code to that hash (`ContractExecutable::Wasm` only); new code runs from the next call. Every signature on the call commits to the hash | in order 200, 203, 206, 204, 207 (host error if the hash was never uploaded; then nothing changes, the proposal included). An expired proposal stays visible until cancelled or replaced, and can never run |
+| `set_upgrade_delay(delay)` | `60 <= delay <= 30 days`; `delay >= upgrade_delay()` | Raises the delay. A pending proposal is held to it: its `eta` becomes `max(eta, proposed_at + delay)`, and `expires_at` moves with it. The event carries the resulting `pending_eta` | 202, 205 |
+| `lock_upgrades()` | not locked; storage current | Clears any pending proposal; `propose_upgrade` and `upgrade` fail forever, for every admin | 141, 200 |
 | `migrate()` (signer: **nobody**) | v1: never | `NothingToMigrate` when current; `MigrationRequired` if data is from a newer layout | 142, 141 |
 
 The admin has **no other powers**: it cannot sign for, move, redirect, freeze, re-time or re-status
 any escrow, and it cannot change the token. Details worth knowing:
 
+- The upgrade delay is set in the constructor (`60 s ..= 30 days`; `deploy.sh` uses 1 hour on Testnet
+  and requires at least 2 days on mainnet) and can only go up: a lower delay would itself need a delay
+  to be safe.
+- A handover never shortens the wait: `accept_admin` cancels the old admin's proposal, and the new
+  admin's own proposal starts a full delay.
 - `set_paused` keeps working after `lock_upgrades`, and the admin role can't be renounced. A locked
   contract's admin can still refuse **new** escrows and funding forever; it can never block exits.
 - A pending admin proposal never expires. Cancel stale proposals with `cancel_admin_proposal`.
@@ -225,23 +256,34 @@ No auth, no writes, no TTL extension, so simulating them has no side effects.
 | `get_escrows(ids) -> Vec<EscrowView>` | In the given order, unknown ids skipped; more than 20 ids → 127 |
 | `escrow_count() -> u64` | Ids are `1..=escrow_count` |
 | `party_escrow_count(party, role) -> u32` | How many escrows `party` has as `Payer`, `Recipient` or `Arbiter` |
-| `party_escrow_ids(party, role, page) -> Vec<u64>` | Up to 50 ids, oldest first; empty past the end |
+| `party_escrow_ids(party, role, page) -> Vec<u64>` | Up to 50 ids; empty past the end. Payer: every escrow, in creation order. Recipient and arbiter: only **funded** escrows, in funding order |
 | `total_locked() -> i128` | Sum of `amount` over Funded and Disputed escrows |
 | `token()`, `admin()`, `pending_admin()` | Pinned token, admin, pending admin (`Option`) |
 | `is_paused()`, `upgrades_enabled()` | Flags |
 | `version()`, `storage_version()` | Code version (constant), stored layout version |
-| `info() -> ContractInfo` | All of the above in one call |
+| `upgrade_delay() -> u64` | Seconds every proposed upgrade must wait |
+| `pending_upgrade() -> Option<PendingUpgrade>` | `{ wasm_hash, proposed_at, eta, expires_at }` while an upgrade is proposed. **Show it as a banner** (INTEGRATION.md §2) |
+| `info() -> ContractInfo` | All of the above in one call (the pending upgrade as `pending_upgrade_hash` / `pending_upgrade_eta` / `pending_upgrade_expires_at`) |
 
 Listing a user's escrows: `party_escrow_count` + `party_escrow_ids` pages, then `get_escrows` in
 batches of 20. One escrow's history: RPC `getEvents` with topic filter `["sisonke", "*", <id u64>]`
 from `escrow.created_ledger` (RPC keeps about 7 days; older history uses the stored `*_at` fields).
 
-**Index spam.** `create` needs only the payer's signature and no tokens, so **anyone can name any
-address as the recipient or arbiter of an unfunded escrow**, with any title. That adds an entry to the
-victim's `Recipient` or `Arbiter` index and nothing else: it can't touch the victim's funds or anyone
-else's index, and each write stays O(1). The web app must therefore label `Created` (unfunded)
-escrows as such, ideally hide or collapse them for recipients and arbiters by default, show the payer
-and arbiter addresses, and never present an unfunded escrow as money owed.
+**Unfunded escrows stay private to the payer.** `create` needs only the payer's signature and no
+tokens, so anyone could name any address as the recipient or arbiter of an unfunded escrow, with any
+title. To keep that from filling someone else's list, `create` indexes the escrow **only for its
+payer**; the recipient and the arbiter get it in their index when it is **funded** (`fund` or
+`create_and_fund`), that is, once real money is locked for them. A cancelled-before-funding escrow
+never appears in anyone else's list.
+
+Funded "spam" is still **almost free**. An attacker can `create_and_fund` 1 stroop (10⁻⁷ USDC) with a
+deadline one second away, then `reclaim` it a ledger later, getting every token back and paying only
+fees and rent. Each round adds one closed (`Refunded`) entry, with the attacker's title, to the
+victim's recipient (and arbiter) list, permanently. It can't touch the victim's funds or anyone
+else's list, and each write stays O(1). The web app must therefore show the amount prominently,
+collapse or hide tiny, very short-lived and self-reclaimed escrows the user never interacted
+with, let users hide escrows, and label `Created` escrows (when reached by id) as
+"Awaiting deposit — not funded" (see [INTEGRATION.md](INTEGRATION.md) §7).
 
 ## Errors
 
@@ -272,8 +314,14 @@ transfer fails. Auth failures are not in this enum: the host aborts with `Error(
 | 141 | `MigrationRequired` | Stored layout version is not the one this code expects |
 | 142 | `NothingToMigrate` | `migrate` when already current |
 | 143 | `Overflow` | Checked arithmetic failed (`NextId`, `TotalLocked`, `PartyCount`) |
-| 200 | `UpgradesLocked` | `upgrade` / `lock_upgrades` after the lock |
+| 200 | `UpgradesLocked` | `propose_upgrade` / `upgrade` / `lock_upgrades` after the lock |
 | 201 | `NoPendingAdmin` | `accept_admin` / `cancel_admin_proposal` with nothing pending |
+| 202 | `InvalidUpgradeDelay` | Upgrade delay outside 60 s ..= 30 days (constructor, `set_upgrade_delay`) |
+| 203 | `NoPendingUpgrade` | `upgrade` / `cancel_upgrade` with no proposal |
+| 204 | `UpgradeTooEarly` | `upgrade` before the proposal's `eta` |
+| 205 | `UpgradeDelayDecrease` | `set_upgrade_delay` below the current delay |
+| 206 | `UpgradeHashMismatch` | `upgrade(expected_wasm_hash)` with a hash other than the pending one |
+| 207 | `UpgradeExpired` | `upgrade` after the proposal's `expires_at`; propose again (fresh delay) |
 
 ## Events
 
@@ -283,7 +331,7 @@ topics `("sisonke", <function name>, id: u64)`; data is a map keyed by field nam
 
 | Topics | Data |
 |---|---|
-| `("sisonke", "init")` | `{admin, token, version}` |
+| `("sisonke", "init")` | `{admin, token, version, upgrade_delay}` |
 | `("sisonke", "created", id)` | `{payer, recipient, arbiter: Option<Address>, token, amount, deadline, title, terms_hash: Option<BytesN<32>>}` |
 | `("sisonke", "funded", id)` | `{payer, amount}` |
 | `("sisonke", "released", id)` | `{by, recipient, amount}` (`by` = payer) |
@@ -296,6 +344,9 @@ topics `("sisonke", <function name>, id: u64)`; data is a map keyed by field nam
 | `("sisonke", "admin_proposed", new_admin)` | `[]` |
 | `("sisonke", "admin_proposal_cancelled")` | `[]` |
 | `("sisonke", "admin_changed", new_admin)` | `{previous_admin}` |
+| `("sisonke", "upgrade_proposed")` | `{new_wasm_hash, proposed_at, eta, expires_at}` |
+| `("sisonke", "upgrade_cancelled")` | `{wasm_hash}`: from `cancel_upgrade`, `lock_upgrades`, `accept_admin`, or a new proposal replacing this one (emitted just before its `upgrade_proposed`) |
+| `("sisonke", "upgrade_delay_changed")` | `{previous, delay, pending_eta: Option<u64>}` (the pending proposal's eta after the change) |
 | `("sisonke", "upgraded")` | `{new_wasm_hash, from_version}` |
 | `("sisonke", "upgrades_locked")` | `[]` |
 | `("sisonke", "migrated")` | `{from, to}` (shape fixed in v1, first emitted by a v2 `migrate`) |
@@ -315,6 +366,8 @@ topics `("sisonke", <function name>, id: u64)`; data is a map keyed by field nam
 | `TotalLocked` | instance | `i128` |
 | `Paused`, `UpgradesLocked` | instance | `bool` (`UpgradesLocked` is never cleared) |
 | `StorageVersion` | instance | `u32` |
+| `UpgradeDelay` | instance | `u64` seconds; only increases |
+| `PendingUpgrade` | instance | `PendingUpgrade { wasm_hash: BytesN<32>, proposed_at: u64, eta: u64, expires_at: u64 }`, while one is proposed |
 | `Escrow(id)` | persistent | `Escrow` |
 | `PartyCount(address, role)` | persistent | `u32` |
 | `PartyPage(address, role, n)` | persistent | `Vec<u64>`, at most 50 ids |
@@ -342,12 +395,21 @@ dashboard showing archived escrows needs a restoring call first.
 
 Trust assumptions, most important first:
 
-1. **Upgrade power is total.** While `upgrades_enabled() == true`, the admin can install code that moves every
-   locked token. Users trust the admin key the way they'd trust a UUPS owner. Mitigations: two-step handover;
-   `upgraded` event with the wasm hash (anyone can `stellar contract fetch` it and diff it against a reproducible build); `lock_upgrades`
-   is permanent and survives admin changes; recommended a multisig admin and a lock before mainnet. A timelock is deferred to v2.
-   In v1 an upgrade takes effect at once, so users get no window to exit first. `deploy.sh` refuses a
-   single deployer key as admin off Testnet, and `upgrade.sh` checks every wasm before installing it.
+1. **The admin can upgrade the code after a public delay; during it, either party can move each
+   escrow's funds out of the new code's reach.** While `upgrades_enabled() == true`, new code
+   installed by the admin could move every locked token. It can only be installed between
+   `upgrade_delay()` and `upgrade_delay() + 7 days` after `propose_upgrade` published its hash, and
+   only by a call naming that hash.
+   - During the delay every exit function works. Before an escrow's deadline, though, its funds
+     can only go to the counterparty (`release` by the payer, `refund` by the recipient) or
+     through the arbiter. The payer alone gets them back only by `reclaim` after the deadline, so
+     unilateral exit needs deadlines shorter than the delay (see the box at the top).
+   - A pending migration (below) is the one state in which exits are blocked.
+   - Mitigate further with the multisig admin (no single key can act; deploy.sh verifies the exact
+     M-of-N off Testnet) and `lock_upgrades`, which is permanent and survives admin changes.
+   - The delay can only be raised, and raising it also pushes out a pending proposal.
+   - Users and the web app must watch `pending_upgrade()` / `upgrade_proposed`: the delay only
+     helps those who notice. `upgrade.sh` also checks every wasm before proposing it.
 2. **Without upgrades, the admin can't touch funds.** `set_paused` only blocks inflows.
 3. **The arbiter** is chosen by the payer, visible on-chain (`get_escrow`, `created` event) before the recipient does
    any work, and immutable. A recipient who doesn't accept the arbiter shouldn't start work, and may `refund` to exit.
@@ -369,10 +431,17 @@ Trust assumptions, most important first:
 **A pending migration blocks exits.** Pause never blocks a way out, but there is a second,
 admin-triggered state that does: after an upgrade to code with a new storage layout, every escrow
 write (including `release`, `refund`, `reclaim`, `dispute` and `resolve`) returns 141 until `migrate`
-has run. `migrate` is permissionless, so **anyone** can end that state by calling it. If a version's
-migration is buggy or can't run, exits stay blocked until the admin ships a fix with another upgrade.
-`upgrade.sh` refuses code whose storage version skips ahead, so a migration always has a defined
-starting point. Reads keep working throughout.
+has run. Reads keep working throughout.
+- **Normally that window is a few seconds.** `migrate` is permissionless, so **anyone** (the
+  upgrader, a keeper, any user) can call it right after the upgrade lands; `upgrade.sh` does so with
+  `MIGRATE=1`. Exits are blocked only until then.
+- **If the migration itself is broken** (it fails, or runs out of budget), the only remedy is to
+  upgrade forward to fixed code. `propose_upgrade` works during a pending migration for exactly
+  this reason, but the fix still waits a full `upgrade_delay()`. Worst case: a broken migration
+  freezes exits for at least one delay, up to 30 days if the delay was raised that far.
+- So every layout-changing version must have its migration rehearsed on a copy of real data before
+  it is proposed, and `upgrade.sh` refuses code whose storage version skips ahead, so a migration
+  always has a defined starting point.
 
 Other properties, each covered by tests (PLAN.md §8, `contracts/sisonke-escrow/src/test/`):
 

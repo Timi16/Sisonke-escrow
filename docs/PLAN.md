@@ -463,7 +463,7 @@ Header comment: rebuild instructions + "never deploy to the production instance"
 - **I10 Deadline partition:** for every `now`, exactly one of {fund/dispute permitted by time, reclaim permitted by time} holds.
 - **I11 Dispute gating:** `Disputed` is reachable only with `arbiter.is_some()` and `now < deadline`. `reclaim` never succeeds from `Disputed`. `resolve` succeeds only from `Disputed`, signed by that escrow's arbiter.
 - **I12 IDs:** ids are unique, sequential from 1, never reused; `escrow_count == NextId - 1`.
-- **I13 Index:** each escrow id appears exactly once in its payer's, recipient's and (if any) arbiter's index, in creation order. No page holds more than `PAGE_SIZE` entries. `party_escrow_count` equals the total across pages.
+- **I13 Index:** each escrow id appears exactly once in its payer's index, in creation order, from creation; and exactly once in its recipient's and (if any) arbiter's index, in funding order, if and only if it has ever been funded (restated in deviation 15). No page holds more than `PAGE_SIZE` entries. `party_escrow_count` equals the total across pages.
 - **I14 Atomicity:** a failed call (contract error, auth failure or SAC failure) leaves storage, balances and events unchanged.
 - **I15 Pause scope:** pause blocks only `create`, `create_and_fund`, `fund`.
 - **I16 Upgrade preservation:** after `upgrade`, the address, all storage and all balances are identical. `lock_upgrades` blocks every later `upgrade`, including after an admin handover.
@@ -711,3 +711,94 @@ test names) was dropped or renamed.
     fails on a later check (C: `resolve` by stranger, `reclaim` by recipient) borrow the
     `get_escrow` footprint with no auth entries, so the network records the auth error. The C check
     now also compares `total_locked` and the contract's USDC balance before and after the attacks.
+13. **Upgrade timelock** (replaces §3.3's instant `upgrade(new_wasm_hash)` and closes SIS-01).
+    - **Constructor** is now `__constructor(admin, token, upgrade_delay: u64)`; the delay must be within
+      `MIN_UPGRADE_DELAY = 60` s ..= `MAX_UPGRADE_DELAY = 30` days, else it fails with 202.
+    - **New admin functions:**
+      - `propose_upgrade(new_wasm_hash)` stores `PendingUpgrade { wasm_hash, proposed_at, eta }`;
+        proposing again replaces it and resets `eta`.
+      - `cancel_upgrade()`.
+      - `upgrade()` takes no argument: it runs the pending proposal at `now >= eta` and clears it
+        before `update_current_contract`.
+      - `set_upgrade_delay(delay)` only raises the delay.
+    - **New reads:** `upgrade_delay()` and `pending_upgrade()`. `ContractInfo` gains
+      `upgrade_delay`, `pending_upgrade_hash` and `pending_upgrade_eta`, flattened because
+      `#[contracttype]` can't hold an `Option` of another custom struct as a field (it fails to
+      compile).
+    - **New errors** (appended): 202 `InvalidUpgradeDelay`, 203 `NoPendingUpgrade`, 204
+      `UpgradeTooEarly`, 205 `UpgradeDelayDecrease`.
+    - **New events:** `upgrade_proposed {new_wasm_hash, proposed_at, eta}`,
+      `upgrade_cancelled {wasm_hash}` and `upgrade_delay_changed {previous, delay}`. `init` gains
+      `upgrade_delay`.
+    - **New keys:** `DataKey::UpgradeDelay` and `DataKey::PendingUpgrade` are part of storage layout 1
+      (fresh pre-release redeploy, `VERSION` stays 1), and are on the frozen list.
+    - `lock_upgrades` and `accept_admin` both clear a pending proposal; a handover never shortens the
+      wait.
+    - **Deviation from the coordinator's brief:** `propose_upgrade` does **not** require the storage
+      version to be current. Requiring it would remove the only recovery path from a pending
+      migration. In that state (for example v1 rolled back onto layout-2 data) every exit returns
+      141, and an upgrade forward is the only fix. `lock_upgrades` keeps its storage-current check.
+    - **Tests:** new module `test/timelock.rs` (10 tests) and `wasm::compiled_v1_timelocked_upgrade_to_fixture`.
+      Every existing upgrade test now goes propose → wait → upgrade (`Setup::upgrade_to`). The model
+      test randomly proposes and cancels upgrades, and resolves are biased toward disputed escrows so
+      the invalid-split outcome is still reached with 12 seeds.
+    - **Fixture:** mirrors the new keys and `PendingUpgrade`, keeps a working timelock, and was rebuilt
+      and recommitted.
+14. **Multisig admin** (SIS-01).
+    - `scripts/multisig-admin.sh` creates the admin: N weight-1 signers, thresholds M, master weight 0.
+    - `scripts/admin.ts` signs admin calls with M signer keys as one address-credential auth entry.
+      The fee payer is the transaction source, so an under-signed call fails on-chain and leaves a hash.
+    - `scripts/upgrade.sh` is now `propose` / `execute` / `cancel`, delegating to `admin.ts`.
+    - `deploy.sh` defaults the Testnet admin to that multisig and adds `UPGRADE_DELAY` (Testnet default
+      3600; mainnet required and at least 172800).
+    - `upgrade-demo.sh` proves on-chain that a 1-of-3 proposal and an early execute are refused, then
+      that the 2-of-3 flow succeeds.
+    - The host's check (address credentials: signatures sorted by key, weight ≥ MEDIUM threshold;
+      source-account credentials: left to stellar-core) is recorded in UPGRADES.md.
+    - New Makefile targets: `multisig-admin`, `upgrade-propose`, `upgrade-execute`, `upgrade-cancel`.
+      They replace `upgrade`.
+15. **Funded-only counterparty index** (SIS-08). §2.4 indexed payer, recipient and arbiter in
+    `create*`. Now `create` indexes only the payer, and the recipient and arbiter are indexed when the
+    escrow is funded (`fund`, `create_and_fund`). I13's "creation order" therefore becomes "funding
+    order" for those two roles. The index, TTL, upgrade and model tests were updated. The adversary
+    test `stranger_can_spam_victims_index_but_not_its_funds` was edited only for this behaviour: it
+    now asserts the victim's index stays empty of unfunded spam. New `docs/INTEGRATION.md` lists the
+    web-app duties.
+16. **Adversary round 2 / Auditor round 2 (SIS-17…25).**
+    - **Contract.**
+      - `upgrade(expected_wasm_hash)` must name the pending hash (new error 206
+        `UpgradeHashMismatch`), so every multisig signature is bound to the reviewed code.
+      - `PendingUpgrade` gains `expires_at = eta + UPGRADE_WINDOW` (7 days, saturating). Later
+        `upgrade` calls fail with new error 207 `UpgradeExpired`, and the proposal must be made again
+        with a fresh delay.
+      - `set_upgrade_delay` with a proposal pending moves its `eta` to
+        `max(eta, proposed_at + delay)` (and `expires_at` with it); `upgrade_delay_changed` gains
+        `pending_eta`.
+      - Replacing a proposal emits `upgrade_cancelled` for the old hash before `upgrade_proposed`,
+        which now also carries `expires_at`.
+      - `ContractInfo` gains `pending_upgrade_expires_at`.
+      - `storage::upgrade_delay` falls back to `MAX_UPGRADE_DELAY` instead of trapping when the key
+        is missing.
+      - `STORAGE_VERSION` stays 1 (fresh redeploy). The superseded instant-upgrade instance
+        `CDYJ6GNK…D2NY` must never be upgraded to this code (types.rs, UPGRADES.md).
+    - **Fixture:** same `upgrade(expected_hash)` and expiry API; rebuilt and recommitted.
+    - **Tests.** Four adversary tests flipped to assert the fix, and renamed to match:
+      - `upgrade_signature_is_not_bound_to_a_hash` → `upgrade_signature_is_bound_to_the_hash`;
+      - `stale_proposal_stays_executable_for_months` → `stale_proposal_expires_after_the_window`;
+      - `raising_the_delay_keeps_the_pending_eta` → `raising_the_delay_pushes_the_pending_eta`;
+      - `missing_upgrade_delay_key_bricks_upgrades` → `missing_upgrade_delay_key_falls_back_to_the_max_delay`.
+
+      The other adversary-round-2 tests changed only the call signature (`upgrade(&hash)`). Four
+      new timelock tests were added.
+    - **Scripts.**
+      - `multisig-admin.sh` verifies the full configuration (master 0, low = med = high = M, exactly
+        the expected signers at weight 1, nothing else) on every run. It refuses M < 2 and never
+        generates signer keys off Testnet (`SIGNERS=G…,G…`); `verify <G…>` mode is used by
+        `deploy.sh` off Testnet (`ADMIN_SIGNER_KEYS`).
+      - `admin.ts` gains `prepare` / `sign` / `submit` for independent signers. It refuses
+        duplicate signers and secrets on argv, and `execute` passes the pending hash.
+      - `upgrade.sh` checks parameter types, not just names, and refuses expired proposals.
+      - `upgrade-demo.sh` adds an on-chain wrong-hash refusal.
+    - **Docs:** the exit-during-delay promise is restated per role (SIS-17), plus the
+      pending-migration window (SIS-19), the true cost of funded spam (SIS-23), and the SIS-25
+      precision fixes, including I13 above.
