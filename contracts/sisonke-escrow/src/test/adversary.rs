@@ -927,11 +927,15 @@ fn admin_powers_cannot_be_hijacked() {
         &s.recipient,
         &s.arbiter, /* pending */
     ] {
-        assert_auth_abort(
-            s.as_signer(who, "upgrade", (hash.clone(),).into_val(&s.env), || {
-                s.client.try_upgrade(&hash)
-            }),
-        );
+        assert_auth_abort(s.as_signer(
+            who,
+            "propose_upgrade",
+            (hash.clone(),).into_val(&s.env),
+            || s.client.try_propose_upgrade(&hash),
+        ));
+        assert_auth_abort(s.as_signer(who, "upgrade", s.upgrade_args(), || {
+            s.client.try_upgrade(&s.pending_hash())
+        }));
         assert_auth_abort(
             s.as_signer(who, "set_paused", (true,).into_val(&s.env), || {
                 s.client.try_set_paused(&true)
@@ -996,9 +1000,9 @@ fn upgrade_lock_survives_handover_and_old_admin_is_powerless() {
     assert_eq!(
         s.as_signer(
             &new_admin,
-            "upgrade",
+            "propose_upgrade",
             (hash.clone(),).into_val(&s.env),
-            || { s.client.try_upgrade(&hash) }
+            || { s.client.try_propose_upgrade(&hash) }
         ),
         Err(Ok(Error::UpgradesLocked))
     );
@@ -1009,11 +1013,11 @@ fn upgrade_lock_survives_handover_and_old_admin_is_powerless() {
         Err(Ok(Error::UpgradesLocked))
     );
     for (f, args) in [
-        ("upgrade", (hash.clone(),).into_val(&s.env)),
+        ("propose_upgrade", (hash.clone(),).into_val(&s.env)),
         ("set_paused", (true,).into_val(&s.env)),
     ] {
         let r = s.as_signer(&s.admin, f, args, || match f {
-            "upgrade" => s.client.try_upgrade(&hash),
+            "propose_upgrade" => s.client.try_propose_upgrade(&hash),
             _ => s.client.try_set_paused(&true),
         });
         assert_auth_abort(r);
@@ -1122,10 +1126,10 @@ fn reads_with_garbage_ids_and_pages_are_safe() {
     );
 }
 
-/// Index spam (Low, by design): a stranger can, with no signature from the
-/// victim, add entries to the victim's Recipient and Arbiter index (and pick
-/// any title). It costs the attacker the fees and rent; it cannot touch the
-/// victim's funds, its Payer index, or its ability to transact.
+/// Index spam (was Low, fixed): a stranger creating unfunded escrows that
+/// name the victim as recipient or arbiter (with any title) gets them listed
+/// only in the stranger's own Payer index. The victim's lists only ever show
+/// funded escrows, and its funds and ability to transact are untouched.
 #[test]
 fn stranger_can_spam_victims_index_but_not_its_funds() {
     let s = Setup::new();
@@ -1145,17 +1149,23 @@ fn stranger_can_spam_victims_index_but_not_its_funds() {
             s.create_with(&spam)
         });
     }
+    // Unfunded spam never reaches the victim's (or the arbiter's) index:
+    // only the real, funded escrow is listed.
     assert_eq!(
         s.client.party_escrow_count(&victim, &PartyRole::Recipient),
-        61
+        1
     );
     assert_eq!(
         s.client
-            .party_escrow_ids(&victim, &PartyRole::Recipient, &1)
-            .len(),
-        11
+            .party_escrow_ids(&victim, &PartyRole::Recipient, &0),
+        soroban_sdk::vec![&s.env, real]
+    );
+    assert_eq!(
+        s.client.party_escrow_count(&s.arbiter, &PartyRole::Arbiter),
+        1
     );
     assert_eq!(s.client.party_escrow_count(&victim, &PartyRole::Payer), 0);
+    assert_eq!(s.client.party_escrow_count(&mallory, &PartyRole::Payer), 60);
     // The victim's real escrow is unaffected and still settles.
     assert_eq!(s.act_as(&s.payer, &Act::Release, real), Ok(Ok(())));
     assert_eq!(s.balance(&victim), AMOUNT);

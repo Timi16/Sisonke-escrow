@@ -297,7 +297,7 @@ fn constructor_rejects_non_token() {
         let env = new_env();
         let admin = Address::generate(&env);
         let token = Address::generate(&env);
-        env.register(SisonkeEscrow, (&admin, &token));
+        env.register(SisonkeEscrow, (&admin, &token, super::UPGRADE_DELAY));
     });
     assert!(not_a_contract.is_err());
 
@@ -305,7 +305,8 @@ fn constructor_rejects_non_token() {
     let not_a_token = std::panic::catch_unwind(|| {
         let s = Setup::new();
         let admin = Address::generate(&s.env);
-        s.env.register(SisonkeEscrow, (&admin, &s.contract));
+        s.env
+            .register(SisonkeEscrow, (&admin, &s.contract, super::UPGRADE_DELAY));
     });
     assert!(not_a_token.is_err());
 }

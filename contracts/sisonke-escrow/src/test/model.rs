@@ -104,6 +104,8 @@ struct World<'a> {
     contract_balance: i128,
     donations: i128,
     paused: bool,
+    /// Whether an upgrade proposal is pending (it never runs here).
+    upgrade_pending: bool,
     now: u64,
     index: HashMap<(usize, u8), Vec<u64>>,
     hits: BTreeSet<String>,
@@ -144,6 +146,7 @@ impl World<'_> {
             contract_balance: 0,
             donations: 0,
             paused: false,
+            upgrade_pending: false,
             now: super::START,
             index: HashMap::new(),
             hits: BTreeSet::new(),
@@ -183,7 +186,7 @@ impl World<'_> {
     }
 
     fn step(&mut self, rng: &mut Rng, log: &mut Vec<String>) {
-        match rng.below(22) {
+        match rng.below(23) {
             0..=1 => self.create(rng, log, false),
             2..=4 => self.create(rng, log, true),
             5..=6 => self.act(rng, log, ActKind::Fund),
@@ -195,6 +198,7 @@ impl World<'_> {
             17 => self.act(rng, log, ActKind::Cancel),
             18..=19 => self.warp(rng, log),
             20 => self.toggle_pause(rng, log),
+            21 => self.toggle_upgrade(rng, log),
             _ => self.donate(rng, log),
         }
     }
@@ -297,23 +301,24 @@ impl World<'_> {
         }
         self.escrows.push(m);
         self.seen.push(Status::Created);
-        for (who, role) in [
-            (Some(payer), PartyRole::Payer),
-            (Some(recipient), PartyRole::Recipient),
-            (arbiter, PartyRole::Arbiter),
-        ] {
-            if let Some(who) = who {
-                self.index
-                    .entry((who, role_code(role)))
-                    .or_default()
-                    .push(id);
-            }
+        self.index_push(payer, PartyRole::Payer, id);
+        if fund {
+            self.index_counterparties(id);
         }
         self.record_events(&events, &want);
     }
 
     fn act(&mut self, rng: &mut Rng, log: &mut Vec<String>, kind: ActKind) {
-        let id = self.pick_id(rng);
+        // Disputes are rare, so `resolve` usually targets one, or it would
+        // almost never get past the status check.
+        let disputed: Vec<u64> = (1..=self.escrows.len() as u64)
+            .filter(|&id| self.escrows[id as usize - 1].status == Status::Disputed)
+            .collect();
+        let id = if matches!(kind, ActKind::Resolve) && !disputed.is_empty() && rng.chance(60) {
+            disputed[rng.below(disputed.len())]
+        } else {
+            self.pick_id(rng)
+        };
         let m = self.get(id).cloned();
         let now = self.now;
 
@@ -419,7 +424,8 @@ impl World<'_> {
                 (status, *split, m.amount - split, "resolved")
             }
         };
-        if matches!(act, Act::Fund) {
+        let funded_now = matches!(act, Act::Fund);
+        if funded_now {
             self.balances[m.payer] -= m.amount;
             self.contract_balance += m.amount;
         }
@@ -430,6 +436,9 @@ impl World<'_> {
             self.balances[m.recipient] += to_recipient;
             self.balances[m.payer] += to_payer;
             self.contract_balance -= to_recipient + to_payer;
+        }
+        if funded_now {
+            self.index_counterparties(id);
         }
         self.record_events(&events, &[(event.into(), Some(id))]);
     }
@@ -479,6 +488,58 @@ impl World<'_> {
             l.timestamp = now;
             l.sequence_number += 1;
         });
+    }
+
+    /// The recipient and the arbiter see an escrow once it is funded.
+    fn index_counterparties(&mut self, id: u64) {
+        let m = self.escrows[id as usize - 1].clone();
+        self.index_push(m.recipient, PartyRole::Recipient, id);
+        if let Some(arbiter) = m.arbiter {
+            self.index_push(arbiter, PartyRole::Arbiter, id);
+        }
+    }
+
+    fn index_push(&mut self, who: usize, role: PartyRole, id: u64) {
+        self.index
+            .entry((who, role_code(role)))
+            .or_default()
+            .push(id);
+    }
+
+    /// Proposes or cancels an upgrade. The model's predictions for every
+    /// escrow call ignore it, which is the point: a pending upgrade never
+    /// changes what users can do.
+    fn toggle_upgrade(&mut self, rng: &mut Rng, log: &mut Vec<String>) {
+        let signer = self.signer(rng, Some(ADMIN));
+        let name = if self.upgrade_pending {
+            "cancel_upgrade"
+        } else {
+            "propose_upgrade"
+        };
+        let expected = if signer == ADMIN {
+            Outcome::Ok
+        } else {
+            Outcome::Auth
+        };
+        log.push(format!("{name} by {signer} -> {expected:?}"));
+        self.hits.insert(format!("{name} {expected:?}"));
+        let who = self.actors[signer].clone();
+        let hash = soroban_sdk::BytesN::from_array(&self.s.env, &[7; 32]);
+        let got = if self.upgrade_pending {
+            self.s
+                .as_signer(&who, name, soroban_sdk::Vec::new(&self.s.env), || {
+                    self.s.client.try_cancel_upgrade()
+                })
+        } else {
+            self.s
+                .as_signer(&who, name, (hash.clone(),).into_val(&self.s.env), || {
+                    self.s.client.try_propose_upgrade(&hash)
+                })
+        };
+        assert_eq!(outcome(got), expected);
+        if expected == Outcome::Ok {
+            self.upgrade_pending = !self.upgrade_pending;
+        }
     }
 
     fn toggle_pause(&mut self, rng: &mut Rng, log: &mut Vec<String>) {
@@ -588,6 +649,7 @@ impl World<'_> {
             assert_eq!(self.s.balance(who), self.balances[i], "actor {i}");
         }
         assert_eq!(c.is_paused(), self.paused);
+        assert_eq!(c.pending_upgrade().is_some(), self.upgrade_pending);
 
         // I13: each id once per party and role, in order, pages bounded.
         for who in 0..ACTORS {
@@ -633,7 +695,7 @@ fn outcome<T, E: core::fmt::Debug>(r: Result<Result<T, E>, Result<Error, InvokeE
     }
 }
 
-const MUST_HIT: [&str; 31] = [
+const MUST_HIT: [&str; 33] = [
     "create Ok",
     "create Auth",
     "create Err(Paused)",
@@ -665,6 +727,8 @@ const MUST_HIT: [&str; 31] = [
     "resolve Err(InvalidSplit)",
     "resolve Err(NoArbiter)",
     "cancel Ok",
+    "propose_upgrade Ok",
+    "cancel_upgrade Ok",
 ];
 
 #[test]

@@ -11,6 +11,7 @@
 //! - `events`: exact event shapes
 //! - `admin`: pause and the two-step admin handover
 //! - `upgrade`: upgrades of the native contract to the fixture wasm
+//! - `timelock`: propose → delay → upgrade, and exits during the delay
 //! - `ttl`: entries stay alive across months of ledgers
 //! - `model`: random operation sequences checked against a reference model
 //! - `wasm`: the compiled contract, its size, costs, upgrades and rollbacks
@@ -31,6 +32,7 @@ mod events;
 mod index;
 mod lifecycle;
 mod model;
+mod timelock;
 mod ttl;
 mod upgrade;
 mod validation;
@@ -59,6 +61,8 @@ pub const DEADLINE: u64 = START + 7 * DAY;
 /// 50 USDC (7 decimals).
 pub const AMOUNT: i128 = 500_000_000;
 pub const PAYER_START: i128 = 10 * AMOUNT;
+/// The upgrade delay every test instance is deployed with: one hour.
+pub const UPGRADE_DELAY: u64 = 3_600;
 /// Testnet's current `max_entry_ttl`; extending past it would fail.
 pub const NETWORK_MAX_TTL: u32 = 3_110_400;
 
@@ -210,8 +214,8 @@ impl<'a> Setup<'a> {
 
         // Last call of the setup, so `events()` still shows `init`.
         let contract = match wasm {
-            Some(wasm) => env.register(wasm, (&admin, &token)),
-            None => env.register(SisonkeEscrow, (&admin, &token)),
+            Some(wasm) => env.register(wasm, (&admin, &token, UPGRADE_DELAY)),
+            None => env.register(SisonkeEscrow, (&admin, &token, UPGRADE_DELAY)),
         };
         let client = SisonkeEscrowClient::new(&env, &contract);
 
@@ -428,6 +432,32 @@ impl<'a> Setup<'a> {
         let result = call();
         self.env.mock_all_auths();
         result
+    }
+
+    /// The pending upgrade's hash, which `upgrade(expected_wasm_hash)` must
+    /// be given, or all zeros if nothing is pending.
+    pub fn pending_hash(&self) -> BytesN<32> {
+        v2::Client::new(&self.env, &self.contract)
+            .pending_upgrade()
+            .map(|p| p.wasm_hash)
+            .unwrap_or_else(|| BytesN::from_array(&self.env, &[0; 32]))
+    }
+
+    /// `upgrade(pending_hash)`'s arguments, for `as_signer`.
+    pub fn upgrade_args(&self) -> Vec<Val> {
+        (self.pending_hash(),).into_val(&self.env)
+    }
+
+    /// The whole timelocked upgrade with every signature mocked: propose
+    /// `hash`, move the clock to its `eta`, run `upgrade`. Works on v1 and on
+    /// the fixture, which share the same upgrade functions.
+    pub fn upgrade_to(&self, hash: &BytesN<32>) {
+        self.env.mock_all_auths();
+        let fixture = v2::Client::new(&self.env, &self.contract);
+        fixture.propose_upgrade(hash);
+        let eta = fixture.pending_upgrade().unwrap().eta;
+        self.set_time(eta.max(self.env.ledger().timestamp()));
+        fixture.upgrade(hash);
     }
 
     pub fn act_args(&self, act: &Act, id: u64) -> Vec<Val> {

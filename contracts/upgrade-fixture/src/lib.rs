@@ -9,8 +9,10 @@
 //! fails and the upgrade tests catch it.
 //!
 //! It also exercises the v2 migration pattern (docs/UPGRADES.md): a
-//! permissionless `migrate` that moves `StorageVersion` from 1 to 2, and an
-//! `upgrade` that still honours `UpgradesLocked`, so tests can roll back.
+//! permissionless `migrate` that moves `StorageVersion` from 1 to 2, and the
+//! same timelocked `propose_upgrade` → `upgrade(expected_wasm_hash)` with an
+//! expiry window (plus `cancel_upgrade` and `lock_upgrades`) as v1, still honouring `UpgradesLocked`, so tests can
+//! roll back.
 //!
 //! Rebuild the committed wasm after changing this file (`make fixture`):
 //!   stellar contract build --package sisonke-upgrade-fixture
@@ -25,6 +27,8 @@ use soroban_sdk::{
 
 const VERSION: u32 = 2;
 const STORAGE_VERSION: u32 = 2;
+/// Same execution window as v1.
+const UPGRADE_WINDOW: u64 = 7 * 86_400;
 
 // Read by scripts/upgrade.sh before installing, like v1's.
 soroban_sdk::contractmeta!(key = "sisonke_version", val = "2");
@@ -47,7 +51,19 @@ pub enum DataKey {
     Escrow(u64),
     PartyCount(Address, PartyRole),
     PartyPage(Address, PartyRole, u32),
+    UpgradeDelay,
+    PendingUpgrade,
     FixtureMarker,
+}
+
+/// Copy of v1's `PendingUpgrade`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PendingUpgrade {
+    pub wasm_hash: BytesN<32>,
+    pub proposed_at: u64,
+    pub eta: u64,
+    pub expires_at: u64,
 }
 
 /// Copy of v1's `Status`.
@@ -107,6 +123,10 @@ pub enum FixtureError {
     MigrationRequired = 141,
     NothingToMigrate = 142,
     UpgradesLocked = 200,
+    NoPendingUpgrade = 203,
+    UpgradeTooEarly = 204,
+    UpgradeHashMismatch = 206,
+    UpgradeExpired = 207,
 }
 
 /// Same shape as v1's `migrated` event.
@@ -215,19 +235,91 @@ impl UpgradeFixture {
         Ok(())
     }
 
-    /// Admin-gated and honours `UpgradesLocked`, like every real version must.
-    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), FixtureError> {
-        Self::admin(env.clone()).require_auth();
-        let locked: bool = env
-            .storage()
+    pub fn upgrade_delay(env: Env) -> u64 {
+        env.storage()
             .instance()
-            .get(&DataKey::UpgradesLocked)
-            .unwrap_or(false);
-        if locked {
+            .get(&DataKey::UpgradeDelay)
+            .unwrap()
+    }
+
+    pub fn pending_upgrade(env: Env) -> Option<PendingUpgrade> {
+        env.storage().instance().get(&DataKey::PendingUpgrade)
+    }
+
+    pub fn upgrades_enabled(env: Env) -> bool {
+        !Self::locked(&env)
+    }
+
+    /// Same timelock as v1: admin-gated, honours `UpgradesLocked`, and the
+    /// proposal can run from `now + upgrade_delay`.
+    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), FixtureError> {
+        Self::admin(env.clone()).require_auth();
+        if Self::locked(&env) {
             return Err(FixtureError::UpgradesLocked);
         }
-        env.deployer()
-            .update_current_contract(ContractExecutable::Wasm(new_wasm_hash));
+        let now = env.ledger().timestamp();
+        let eta = now + Self::upgrade_delay(env.clone());
+        let pending = PendingUpgrade {
+            wasm_hash: new_wasm_hash,
+            proposed_at: now,
+            eta,
+            expires_at: eta.saturating_add(UPGRADE_WINDOW),
+        };
+        env.storage()
+            .instance()
+            .set(&DataKey::PendingUpgrade, &pending);
         Ok(())
+    }
+
+    pub fn cancel_upgrade(env: Env) -> Result<(), FixtureError> {
+        Self::admin(env.clone()).require_auth();
+        if Self::pending_upgrade(env.clone()).is_none() {
+            return Err(FixtureError::NoPendingUpgrade);
+        }
+        env.storage().instance().remove(&DataKey::PendingUpgrade);
+        Ok(())
+    }
+
+    pub fn upgrade(env: Env, expected_wasm_hash: BytesN<32>) -> Result<(), FixtureError> {
+        Self::admin(env.clone()).require_auth();
+        if Self::locked(&env) {
+            return Err(FixtureError::UpgradesLocked);
+        }
+        let pending = Self::pending_upgrade(env.clone()).ok_or(FixtureError::NoPendingUpgrade)?;
+        if pending.wasm_hash != expected_wasm_hash {
+            return Err(FixtureError::UpgradeHashMismatch);
+        }
+        let now = env.ledger().timestamp();
+        if now < pending.eta {
+            return Err(FixtureError::UpgradeTooEarly);
+        }
+        if now > pending.expires_at {
+            return Err(FixtureError::UpgradeExpired);
+        }
+        env.storage().instance().remove(&DataKey::PendingUpgrade);
+        env.deployer()
+            .update_current_contract(ContractExecutable::Wasm(pending.wasm_hash));
+        Ok(())
+    }
+
+    pub fn lock_upgrades(env: Env) -> Result<(), FixtureError> {
+        Self::admin(env.clone()).require_auth();
+        if Self::locked(&env) {
+            return Err(FixtureError::UpgradesLocked);
+        }
+        env.storage().instance().remove(&DataKey::PendingUpgrade);
+        env.storage()
+            .instance()
+            .set(&DataKey::UpgradesLocked, &true);
+        Ok(())
+    }
+}
+
+impl UpgradeFixture {
+    fn locked(env: &Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::UpgradesLocked)
+            .unwrap_or(false)
     }
 }

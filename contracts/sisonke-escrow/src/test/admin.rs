@@ -150,7 +150,18 @@ fn old_admin_loses_every_power() {
         s.client.try_propose_admin(old)
     }));
     let args = (hash.clone(),).into_val(&s.env);
-    assert_auth_abort(s.as_signer(old, "upgrade", args, || s.client.try_upgrade(&hash)));
+    assert_auth_abort(s.as_signer(old, "propose_upgrade", args, || {
+        s.client.try_propose_upgrade(&hash)
+    }));
+    assert_auth_abort(s.as_signer(old, "upgrade", s.upgrade_args(), || {
+        s.client.try_upgrade(&s.pending_hash())
+    }));
+    let delay = super::UPGRADE_DELAY * 2;
+    assert_auth_abort(
+        s.as_signer(old, "set_upgrade_delay", (delay,).into_val(&s.env), || {
+            s.client.try_set_upgrade_delay(&delay)
+        }),
+    );
     assert_auth_abort(s.as_signer(old, "lock_upgrades", no_args(&s), || {
         s.client.try_lock_upgrades()
     }));
@@ -184,6 +195,13 @@ fn admin_functions_do_not_move_funds() {
     s.client.propose_admin(&next);
     s.client.accept_admin();
     assert_eq!(s.client.try_migrate(), Err(Ok(Error::NothingToMigrate)));
+    // The timelock functions too: a proposal, a longer delay, a cancel.
+    s.client
+        .propose_upgrade(&soroban_sdk::BytesN::from_array(&s.env, &[9; 32]));
+    s.client.set_upgrade_delay(&(super::UPGRADE_DELAY * 2));
+    s.client.cancel_upgrade();
+    s.client
+        .propose_upgrade(&soroban_sdk::BytesN::from_array(&s.env, &[9; 32]));
     s.client.lock_upgrades();
     s.set_time(DEADLINE + 1);
 

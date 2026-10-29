@@ -36,7 +36,8 @@ fn create_extends_escrow_index_and_instance() {
     let s = Setup::new();
     assert_eq!(TTL_EXTEND_TO, 120 * D);
     assert_eq!(TTL_THRESHOLD, 60 * D);
-    let id = s.create();
+    // Funded, so the recipient's and arbiter's index entries exist too.
+    let id = s.funded();
     assert_eq!(ttl(&s, &DataKey::Escrow(id)), 120 * D);
     for (who, role) in [
         (&s.payer, PartyRole::Payer),
@@ -106,7 +107,7 @@ fn extend_escrow_ttl_is_permissionless_and_extends() {
 #[test]
 fn extend_index_ttl_is_permissionless() {
     let s = Setup::new();
-    s.create();
+    s.funded();
     s.advance_days(70);
     s.env.mock_auths(&[]);
     s.client.extend_index_ttl(&s.payer, &PartyRole::Payer, &0);

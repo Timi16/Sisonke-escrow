@@ -6,7 +6,7 @@
 use soroban_sdk::{Address, Env, Vec};
 
 use crate::errors::Error;
-use crate::types::{DataKey, Escrow, PartyRole};
+use crate::types::{DataKey, Escrow, PartyRole, PendingUpgrade};
 
 /// ~5 second ledgers.
 pub const DAY_IN_LEDGERS: u32 = 17_280;
@@ -100,6 +100,33 @@ pub fn set_upgrades_locked(env: &Env, locked: bool) {
     env.storage()
         .instance()
         .set(&DataKey::UpgradesLocked, &locked);
+}
+
+/// Set by the constructor. If it is ever missing (an instance built by
+/// older code), the strictest delay applies rather than a trap.
+pub fn upgrade_delay(env: &Env) -> u64 {
+    env.storage()
+        .instance()
+        .get(&DataKey::UpgradeDelay)
+        .unwrap_or(crate::MAX_UPGRADE_DELAY)
+}
+
+pub fn set_upgrade_delay(env: &Env, delay: u64) {
+    env.storage().instance().set(&DataKey::UpgradeDelay, &delay);
+}
+
+pub fn pending_upgrade(env: &Env) -> Option<PendingUpgrade> {
+    env.storage().instance().get(&DataKey::PendingUpgrade)
+}
+
+pub fn set_pending_upgrade(env: &Env, pending: &PendingUpgrade) {
+    env.storage()
+        .instance()
+        .set(&DataKey::PendingUpgrade, pending);
+}
+
+pub fn clear_pending_upgrade(env: &Env) {
+    env.storage().instance().remove(&DataKey::PendingUpgrade);
 }
 
 pub fn storage_version(env: &Env) -> u32 {

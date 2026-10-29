@@ -59,4 +59,17 @@ pub enum Error {
     UpgradesLocked = 200,
     /// `accept_admin` or `cancel_admin_proposal` with no admin proposed.
     NoPendingAdmin = 201,
+    /// Upgrade delay outside `MIN_UPGRADE_DELAY..=MAX_UPGRADE_DELAY`
+    /// (constructor or `set_upgrade_delay`).
+    InvalidUpgradeDelay = 202,
+    /// `upgrade` or `cancel_upgrade` with no upgrade proposed.
+    NoPendingUpgrade = 203,
+    /// `upgrade` before the proposal's `eta`.
+    UpgradeTooEarly = 204,
+    /// `set_upgrade_delay` below the current delay.
+    UpgradeDelayDecrease = 205,
+    /// `upgrade(expected_wasm_hash)` with a hash other than the pending one.
+    UpgradeHashMismatch = 206,
+    /// `upgrade` after the proposal's `expires_at`: propose it again.
+    UpgradeExpired = 207,
 }

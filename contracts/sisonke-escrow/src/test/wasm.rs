@@ -92,15 +92,16 @@ fn compiled_v1_upgrade_to_fixture_and_rollback_before_migrate() {
     let v1_hash = s.env.deployer().upload_contract_wasm(v1.as_slice());
     let v2_hash = s.env.deployer().upload_contract_wasm(v2::WASM);
 
-    s.client.upgrade(&v2_hash);
+    s.upgrade_to(&v2_hash);
     let upgraded = v2::Client::new(&s.env, &s.contract);
     assert_eq!(upgraded.version(), 2);
     assert_eq!(upgraded.get_escrow(&id).status, v2::Status::Funded);
     assert_eq!(upgraded.get_escrow(&disputed).status, v2::Status::Disputed);
     assert_eq!(upgraded.total_locked(), 2 * AMOUNT);
 
-    // Roll back before migrating: v1 picks up exactly where it was.
-    upgraded.upgrade(&v1_hash);
+    // Roll back before migrating, through the fixture's own timelock: v1
+    // picks up exactly where it was.
+    s.upgrade_to(&v1_hash);
     assert_eq!(s.client.version(), 1);
     assert_eq!(s.client.storage_version(), 1);
     s.client.release(&id);
@@ -121,11 +122,11 @@ fn rollback_after_migration_blocks_v1_writes() {
     let v1_hash = s.env.deployer().upload_contract_wasm(v1.as_slice());
     let v2_hash = s.env.deployer().upload_contract_wasm(v2::WASM);
 
-    s.client.upgrade(&v2_hash);
+    s.upgrade_to(&v2_hash);
     let upgraded = v2::Client::new(&s.env, &s.contract);
     upgraded.migrate();
     assert_eq!(upgraded.storage_version(), 2);
-    upgraded.upgrade(&v1_hash);
+    s.upgrade_to(&v1_hash);
 
     assert_eq!(s.client.version(), 1);
     assert_eq!(s.client.storage_version(), 2);
@@ -142,9 +143,43 @@ fn rollback_after_migration_blocks_v1_writes() {
     assert_eq!(s.status(id), Status::Funded);
     assert_eq!(s.balance(&s.contract), AMOUNT);
 
-    s.client.upgrade(&v2_hash);
+    // The way forward stays open: v1 can still propose and run an upgrade.
+    s.upgrade_to(&v2_hash);
     assert_eq!(upgraded.version(), 2);
     assert_eq!(upgraded.get_escrow(&id).amount, AMOUNT);
+}
+
+/// The compiled v1's timelock against the real fixture wasm: too early at
+/// `eta - 1`, every exit works while the upgrade is pending, and the upgrade
+/// runs at `eta`.
+#[test]
+#[ignore = "needs a fresh wasm build: run `make test`"]
+fn compiled_v1_timelocked_upgrade_to_fixture() {
+    let bytes = wasm();
+    let s = setup_wasm(&bytes);
+    let to_release = s.funded();
+    let kept = s.funded();
+    let v2_hash = s.env.deployer().upload_contract_wasm(v2::WASM);
+
+    s.client.propose_upgrade(&v2_hash);
+    let pending = s.client.pending_upgrade().unwrap();
+    assert_eq!(pending.eta, pending.proposed_at + super::UPGRADE_DELAY);
+    s.set_time(pending.eta - 1);
+    assert_eq!(
+        s.client.try_upgrade(&s.pending_hash()),
+        Err(Ok(Error::UpgradeTooEarly))
+    );
+    // A user who distrusts the proposal leaves before it can run.
+    s.client.release(&to_release);
+    assert_eq!(s.status(to_release), Status::Released);
+
+    s.set_time(pending.eta);
+    s.client.upgrade(&s.pending_hash());
+    let upgraded = v2::Client::new(&s.env, &s.contract);
+    assert_eq!(upgraded.version(), 2);
+    assert_eq!(upgraded.pending_upgrade(), None);
+    assert_eq!(upgraded.get_escrow(&kept).status, v2::Status::Funded);
+    assert_eq!(upgraded.total_locked(), AMOUNT);
 }
 
 #[test]

@@ -7,11 +7,19 @@
 //! - any `Status` variant (stored in every `Escrow`),
 //! - any `PartyRole` variant (part of every index key: renaming one orphans
 //!   every index),
-//! - any `Escrow` field name or field type (a struct is stored as a map
-//!   keyed by field name).
+//! - any `Escrow` or `PendingUpgrade` field name or field type (a struct is
+//!   stored as a map keyed by field name).
 //!
 //! `EscrowView` and `ContractInfo` are never stored, but their field names
 //! are the client ABI, so the same rule applies to them.
+//!
+//! This layout (`STORAGE_VERSION` 1, with `UpgradeDelay` and
+//! `PendingUpgrade`) is for fresh deployments only. The superseded
+//! instant-upgrade Testnet instance
+//! `CDYJ6GNKZCXTBSDETHTQDUTAYHLM577N46BQW4FU3ITDFMGDG3JJD2NY` must never be
+//! upgraded to this code: it has no `UpgradeDelay`, and its escrows were
+//! indexed for the recipient and arbiter at creation, so funding them here
+//! would index them twice. It is history only.
 //!
 //! **Any addition is a layout change**: a new `DataKey` variant, `Status` or
 //! `PartyRole` variant, or `Escrow` field (which must be `Option<T>`) means
@@ -114,6 +122,18 @@ pub struct EscrowView {
     pub deadline_passed: bool,
 }
 
+/// An upgrade the admin has proposed. `upgrade` can install `wasm_hash`
+/// from `eta` (`proposed_at + upgrade_delay`) until `expires_at`
+/// (`eta + UPGRADE_WINDOW`); after that it must be proposed again.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PendingUpgrade {
+    pub wasm_hash: BytesN<32>,
+    pub proposed_at: u64,
+    pub eta: u64,
+    pub expires_at: u64,
+}
+
 /// Everything the web app header needs, in one read.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,6 +147,15 @@ pub struct ContractInfo {
     pub upgrades_locked: bool,
     pub escrow_count: u64,
     pub total_locked: i128,
+    pub upgrade_delay: u64,
+    /// The proposed upgrade's wasm hash and `eta`, flattened from
+    /// `pending_upgrade()` (an `Option` of a struct can't be a field here).
+    /// Show them prominently: before `eta` either party can still move each
+    /// escrow's funds out of the new code's reach (to the counterparty, or
+    /// back to the payer after the deadline).
+    pub pending_upgrade_hash: Option<BytesN<32>>,
+    pub pending_upgrade_eta: Option<u64>,
+    pub pending_upgrade_expires_at: Option<u64>,
 }
 
 #[contracttype]
@@ -152,6 +181,11 @@ pub enum DataKey {
     Escrow(u64),
     /// Persistent. `u32`, how many escrows the address has in this role.
     PartyCount(Address, PartyRole),
-    /// Persistent. `Vec<u64>` of at most `PAGE_SIZE` ids, oldest first.
+    /// Persistent. `Vec<u64>` of at most `PAGE_SIZE` ids: creation order for
+    /// `Payer`, funding order for `Recipient` and `Arbiter`.
     PartyPage(Address, PartyRole, u32),
+    /// Instance. `u64`, seconds every proposed upgrade waits. Only increases.
+    UpgradeDelay,
+    /// Instance. `PendingUpgrade`, while one is proposed.
+    PendingUpgrade,
 }

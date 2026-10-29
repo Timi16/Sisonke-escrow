@@ -164,7 +164,7 @@ fn every_transition_emits_exact_event() {
     // then shows the `migrated` shape a v2 emits.
     let s = Setup::new();
     let hash = s.env.deployer().upload_contract_wasm(v2::WASM);
-    s.client.upgrade(&hash);
+    s.upgrade_to(&hash);
     assert_eq!(
         s.events(),
         [events::Upgraded {
@@ -337,6 +337,7 @@ fn constructor_emits_init() {
             admin: s.admin.clone(),
             token: s.usdc.address.clone(),
             version: VERSION,
+            upgrade_delay: super::UPGRADE_DELAY,
         }
         .to_xdr(&s.env, &s.contract)]
     );

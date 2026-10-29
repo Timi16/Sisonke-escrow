@@ -284,8 +284,11 @@ fn admin_functions_reject_non_admin() {
     let s = Setup::new();
     let id = s.funded();
     let hash = s.env.deployer().upload_contract_wasm(v2::WASM);
-    // A proposal exists, so cancel_admin_proposal would otherwise succeed.
+    // Proposals exist and the upgrade is past its eta, so cancel_*, upgrade
+    // would otherwise succeed.
     s.client.propose_admin(&s.stranger);
+    s.client.propose_upgrade(&hash);
+    s.set_time(s.client.pending_upgrade().unwrap().eta);
     let before = s.snapshot();
 
     for who in [&s.payer, &s.recipient, &s.arbiter, &s.stranger] {
@@ -302,7 +305,21 @@ fn admin_functions_reject_non_admin() {
             s.client.try_cancel_admin_proposal()
         }));
         let args = (hash.clone(),).into_val(&s.env);
-        assert_auth_abort(s.as_signer(who, "upgrade", args, || s.client.try_upgrade(&hash)));
+        assert_auth_abort(s.as_signer(who, "propose_upgrade", args, || {
+            s.client.try_propose_upgrade(&hash)
+        }));
+        assert_auth_abort(s.as_signer(who, "upgrade", s.upgrade_args(), || {
+            s.client.try_upgrade(&s.pending_hash())
+        }));
+        assert_auth_abort(s.as_signer(who, "cancel_upgrade", no_args(&s), || {
+            s.client.try_cancel_upgrade()
+        }));
+        let delay = super::UPGRADE_DELAY * 2;
+        assert_auth_abort(
+            s.as_signer(who, "set_upgrade_delay", (delay,).into_val(&s.env), || {
+                s.client.try_set_upgrade_delay(&delay)
+            }),
+        );
         assert_auth_abort(s.as_signer(who, "lock_upgrades", no_args(&s), || {
             s.client.try_lock_upgrades()
         }));

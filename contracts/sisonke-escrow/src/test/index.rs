@@ -4,7 +4,7 @@ extern crate std;
 
 use soroban_sdk::{testutils::Address as _, vec, Address, Vec};
 
-use super::{Setup, Terms};
+use super::{Setup, Terms, AMOUNT};
 use crate::{PartyRole, PAGE_SIZE};
 
 /// Every id in `party`'s index for `role`, across all pages, checking that
@@ -26,48 +26,71 @@ fn all_ids(s: &Setup, party: &Address, role: PartyRole) -> std::vec::Vec<u64> {
     out
 }
 
+/// The payer's index lists an escrow from creation; the recipient's and the
+/// arbiter's only once it is funded, in funding order.
 #[test]
 fn index_records_payer_recipient_and_arbiter() {
     let s = Setup::new();
     let a = s.create();
-    let b = s.funded();
-    assert_eq!(all_ids(&s, &s.payer, PartyRole::Payer), [a, b]);
-    assert_eq!(all_ids(&s, &s.recipient, PartyRole::Recipient), [a, b]);
-    assert_eq!(all_ids(&s, &s.arbiter, PartyRole::Arbiter), [a, b]);
+    assert_eq!(all_ids(&s, &s.payer, PartyRole::Payer), [a]);
+    assert!(all_ids(&s, &s.recipient, PartyRole::Recipient).is_empty());
+    assert!(all_ids(&s, &s.arbiter, PartyRole::Arbiter).is_empty());
+
+    let b = s.create();
+    let c = s.funded();
+    s.client.fund(&b);
+    s.client.fund(&a);
+    assert_eq!(all_ids(&s, &s.payer, PartyRole::Payer), [a, b, c]);
+    assert_eq!(all_ids(&s, &s.recipient, PartyRole::Recipient), [c, b, a]);
+    assert_eq!(all_ids(&s, &s.arbiter, PartyRole::Arbiter), [c, b, a]);
     // Each role is its own list.
     assert!(all_ids(&s, &s.payer, PartyRole::Recipient).is_empty());
     assert!(all_ids(&s, &s.recipient, PartyRole::Payer).is_empty());
     assert!(all_ids(&s, &s.arbiter, PartyRole::Payer).is_empty());
 
     // The recipient of one escrow can be the payer of another.
-    let c = s.create_with(&Terms {
+    s.usdc_admin.mint(&s.recipient, &AMOUNT);
+    let d = s.create_with(&Terms {
         payer: s.recipient.clone(),
         recipient: s.payer.clone(),
         arbiter: None,
         ..s.terms()
     });
-    assert_eq!(all_ids(&s, &s.recipient, PartyRole::Payer), [c]);
-    assert_eq!(all_ids(&s, &s.payer, PartyRole::Recipient), [c]);
-    assert_eq!(all_ids(&s, &s.arbiter, PartyRole::Arbiter), [a, b]);
+    assert_eq!(all_ids(&s, &s.recipient, PartyRole::Payer), [d]);
+    assert!(all_ids(&s, &s.payer, PartyRole::Recipient).is_empty());
+    s.client.fund(&d);
+    assert_eq!(all_ids(&s, &s.payer, PartyRole::Recipient), [d]);
+    assert_eq!(all_ids(&s, &s.arbiter, PartyRole::Arbiter), [c, b, a]);
+
+    // Cancelled before funding: it never reaches the other parties' lists.
+    let e = s.create();
+    s.client.cancel(&e);
+    assert_eq!(all_ids(&s, &s.payer, PartyRole::Payer), [a, b, c, e]);
+    assert_eq!(all_ids(&s, &s.recipient, PartyRole::Recipient), [c, b, a]);
 }
 
 #[test]
 fn no_arbiter_means_no_arbiter_entry() {
     let s = Setup::new();
-    s.create_with(&s.terms_no_arbiter());
+    let id = s.create_and_fund_with(&s.terms_no_arbiter());
     assert_eq!(
         s.client.party_escrow_count(&s.arbiter, &PartyRole::Arbiter),
         0
     );
-    assert_eq!(all_ids(&s, &s.payer, PartyRole::Payer), [1]);
+    assert_eq!(all_ids(&s, &s.payer, PartyRole::Payer), [id]);
+    assert_eq!(all_ids(&s, &s.recipient, PartyRole::Recipient), [id]);
 }
 
 #[test]
 fn index_page_rolls_over_at_page_size() {
     let s = Setup::new();
     let n = PAGE_SIZE as u64 + 1;
+    let small = Terms {
+        amount: 1,
+        ..s.terms()
+    };
     for _ in 0..n {
-        s.create();
+        s.create_and_fund_with(&small);
     }
     assert_eq!(s.client.party_escrow_count(&s.payer, &PartyRole::Payer), 51);
     let page0 = s.client.party_escrow_ids(&s.payer, &PartyRole::Payer, &0);
@@ -75,15 +98,13 @@ fn index_page_rolls_over_at_page_size() {
     assert_eq!(page0.len(), 50);
     assert_eq!(page1, vec![&s.env, 51]);
     let expected: std::vec::Vec<u64> = (1..=n).collect();
-    for role in [PartyRole::Payer, PartyRole::Recipient] {
-        let who = if role == PartyRole::Payer {
-            &s.payer
-        } else {
-            &s.recipient
-        };
-        assert_eq!(all_ids(&s, who, role), expected, "oldest first");
+    for (who, role) in [
+        (&s.payer, PartyRole::Payer),
+        (&s.recipient, PartyRole::Recipient),
+        (&s.arbiter, PartyRole::Arbiter),
+    ] {
+        assert_eq!(all_ids(&s, who, role), expected, "{role:?}, oldest first");
     }
-    assert_eq!(all_ids(&s, &s.arbiter, PartyRole::Arbiter), expected);
 }
 
 #[test]
@@ -119,28 +140,60 @@ fn get_escrows_preserves_order_and_skips_unknown() {
     assert!(s.client.get_escrows(&vec![&s.env]).is_empty());
 }
 
-/// Someone spamming escrows at a victim only grows the victim's list for that
-/// role, one bounded page at a time; the victim's own calls stay O(1) and
-/// nobody else's index is touched.
+/// Unfunded spam naming a victim never reaches the victim's lists. Funded
+/// "spam" does (the spammer pays for every escrow), but only the victim's
+/// list for that role grows, one bounded page at a time, and the victim's own
+/// calls stay O(1).
 #[test]
 fn spam_escrows_do_not_touch_other_parties_index() {
     let s = Setup::new();
     let victim = Address::generate(&s.env);
     let spammer = Address::generate(&s.env);
+    s.usdc_admin.mint(&spammer, &(10 * AMOUNT));
+    let spam = Terms {
+        payer: spammer.clone(),
+        recipient: victim.clone(),
+        arbiter: Some(victim.clone()),
+        ..s.terms()
+    };
 
-    // Baseline: what a create by a party with an empty history writes.
+    // Unfunded: listed for the spammer only.
+    let unfunded = Terms {
+        arbiter: Some(s.arbiter.clone()),
+        ..spam.clone()
+    };
+    for _ in 0..(2 * PAGE_SIZE + 10) {
+        s.create_with(&unfunded);
+    }
+    assert_eq!(
+        s.client.party_escrow_count(&victim, &PartyRole::Recipient),
+        0
+    );
+    assert_eq!(
+        s.client.party_escrow_count(&s.arbiter, &PartyRole::Arbiter),
+        0
+    );
+    assert_eq!(
+        s.client.party_escrow_count(&spammer, &PartyRole::Payer),
+        2 * PAGE_SIZE + 10
+    );
+
+    // Baseline: what a funding create naming a fresh recipient writes.
     let mut fresh = s.terms();
+    fresh.amount = 1;
     fresh.payer = Address::generate(&s.env);
-    s.create_with(&fresh);
+    s.usdc_admin.mint(&fresh.payer, &10);
+    s.create_and_fund_with(&fresh);
     let baseline = s.env.cost_estimate().resources();
 
+    // Funded spam, 1 unit each.
+    let funded = Terms {
+        amount: 1,
+        arbiter: None,
+        ..spam
+    };
     for _ in 0..(2 * PAGE_SIZE + 10) {
-        s.create_with(&Terms {
-            payer: spammer.clone(),
-            recipient: victim.clone(),
-            arbiter: None,
-            ..s.terms()
-        });
+        s.create_and_fund_with(&funded);
     }
     assert_eq!(
         s.client.party_escrow_count(&victim, &PartyRole::Recipient),
@@ -160,14 +213,13 @@ fn spam_escrows_do_not_touch_other_parties_index() {
             .party_escrow_count(&s.recipient, &PartyRole::Recipient),
         1
     );
-    assert_eq!(all_ids(&s, &s.arbiter, PartyRole::Arbiter), [1]);
 
-    // A create naming the spammed victim writes no more entries, and no
-    // more bytes, than one naming a fresh party.
-    let id = s.create_with(&Terms {
+    // A funding create naming the spammed victim writes no more entries, and
+    // no more bytes, than one naming a fresh party.
+    let id = s.create_and_fund_with(&Terms {
         payer: fresh.payer.clone(),
         recipient: victim.clone(),
-        ..s.terms()
+        ..fresh.clone()
     });
     let after_spam = s.env.cost_estimate().resources();
     assert_eq!(after_spam.write_entries, baseline.write_entries);

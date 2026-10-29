@@ -32,14 +32,23 @@
 //!   arbiter is independent: the payer chooses it, so a recipient must trust
 //!   it before starting work.
 //! - The admin can pause new escrows and funding, hand over the admin role,
-//!   and upgrade the code. It cannot sign for, move, freeze or re-time any
-//!   escrow. Pause never blocks a way out.
+//!   and upgrade the code after a public delay. It cannot sign for, move,
+//!   freeze or re-time any escrow. Pause never blocks a way out.
+//! - Only the payer's list shows an unfunded escrow; the recipient's and the
+//!   arbiter's lists get it once it is funded.
 //!
-//! Upgrades work like Solidity's UUPS: `upgrade` lives in the contract itself
-//! and swaps the wasm while the address, storage and locked funds stay put.
-//! Because new code could do anything, and an upgrade takes effect at once
-//! (no timelock in v1), the admin is trusted with every locked token until
-//! `lock_upgrades` freezes the code for good. Use a multisig admin.
+//! Upgrades work like Solidity's UUPS: the upgrade functions live in the
+//! contract itself and swap the wasm while the address, storage and locked
+//! funds stay put. New code could do anything, so an upgrade is timelocked:
+//! `propose_upgrade` publishes the wasm hash, and `upgrade` can only install
+//! it `upgrade_delay()` seconds later, within a 7-day window, and only if the
+//! call names that exact hash. During the delay every exit function keeps
+//! working, so either party can move an escrow's funds out of the new code's
+//! reach: before the deadline only to the counterparty (the payer can
+//! release, the recipient can refund) or through the arbiter; the payer alone
+//! only gets funds back by reclaiming after the deadline. The delay can only
+//! be raised, the admin should be a multisig account, and `lock_upgrades`
+//! freezes the code for good.
 //!
 //! A version that changes the storage layout ships a permissionless
 //! `migrate`; until it has run, every escrow write refuses with
@@ -60,13 +69,13 @@ mod types;
 mod test;
 
 use soroban_sdk::{
-    contract, contractimpl, contractmeta, token, Address, BytesN, ContractExecutable, Env, String,
-    Vec,
+    contract, contractimpl, contractmeta, panic_with_error, token, Address, BytesN,
+    ContractExecutable, Env, String, Vec,
 };
 
 pub use errors::Error;
 pub use storage::{DAY_IN_LEDGERS, PAGE_SIZE, TTL_EXTEND_TO, TTL_THRESHOLD};
-pub use types::{ContractInfo, DataKey, Escrow, EscrowView, PartyRole, Status};
+pub use types::{ContractInfo, DataKey, Escrow, EscrowView, PartyRole, PendingUpgrade, Status};
 
 /// Bumped with every release of this code. Returned by `version()`.
 pub const VERSION: u32 = 1;
@@ -80,6 +89,15 @@ pub const STORAGE_VERSION: u32 = 1;
 // equal the constants above.
 contractmeta!(key = "sisonke_version", val = "1");
 contractmeta!(key = "sisonke_storage_version", val = "1");
+
+/// Shortest allowed upgrade delay: one minute, so Testnet can demo the timelock.
+pub const MIN_UPGRADE_DELAY: u64 = 60;
+/// Longest allowed upgrade delay: 30 days.
+pub const MAX_UPGRADE_DELAY: u64 = 30 * 86_400;
+/// How long after its `eta` a proposal can still run: 7 days. Later it is
+/// expired and must be proposed again, so an upgrade never lands long after
+/// users stopped watching for it.
+pub const UPGRADE_WINDOW: u64 = 7 * 86_400;
 
 /// Title cap, in bytes (UTF-8), inclusive.
 pub const MAX_TITLE_LEN: u32 = 64;
@@ -95,8 +113,13 @@ pub struct SisonkeEscrow;
 impl SisonkeEscrow {
     /// Runs once, atomically with deploy, so it cannot be front-run.
     /// `token` is pinned for every escrow; the `decimals()` call makes deploy
-    /// fail if it isn't a token contract.
-    pub fn __constructor(env: Env, admin: Address, token: Address) {
+    /// fail if it isn't a token contract. `upgrade_delay` (seconds, between
+    /// `MIN_UPGRADE_DELAY` and `MAX_UPGRADE_DELAY`) is how long every proposed
+    /// upgrade must wait before it can run; it can later only be raised.
+    pub fn __constructor(env: Env, admin: Address, token: Address, upgrade_delay: u64) {
+        if !(MIN_UPGRADE_DELAY..=MAX_UPGRADE_DELAY).contains(&upgrade_delay) {
+            panic_with_error!(&env, Error::InvalidUpgradeDelay);
+        }
         token::Client::new(&env, &token).decimals();
         storage::set_admin(&env, &admin);
         storage::set_token(&env, &token);
@@ -105,14 +128,17 @@ impl SisonkeEscrow {
         storage::set_paused(&env, false);
         storage::set_upgrades_locked(&env, false);
         storage::set_storage_version(&env, STORAGE_VERSION);
+        storage::set_upgrade_delay(&env, upgrade_delay);
         storage::extend_instance(&env);
-        events::init(&env, &admin, &token, VERSION);
+        events::init(&env, &admin, &token, VERSION, upgrade_delay);
     }
 
     // ======================================================= escrow writes
 
     /// Creates an escrow in `Created` status. Nothing is locked yet; call
     /// `fund` next, or use `create_and_fund` to do both in one transaction.
+    /// Only the payer's index lists it until it is funded, so nobody can fill
+    /// someone else's list with unfunded escrows.
     ///
     /// `arbiter` is optional and fixed for good: without one there is no
     /// dispute path. `terms_hash` is the sha256 of the off-chain agreement.
@@ -136,7 +162,7 @@ impl SisonkeEscrow {
             &env, payer, recipient, arbiter, amount, deadline, title, terms_hash,
         )?;
         storage::save(&env, &escrow);
-        Self::index(&env, &escrow)?;
+        storage::index_push(&env, &escrow.payer, PartyRole::Payer, escrow.id)?;
         events::created(&env, &escrow);
         Ok(escrow.id)
     }
@@ -159,6 +185,7 @@ impl SisonkeEscrow {
         }
         Self::mark_funded(&env, &mut escrow)?;
         storage::save(&env, &escrow);
+        Self::index_counterparties(&env, &escrow)?;
         Self::pull_funds(&env, &escrow)?;
         events::funded(&env, &escrow);
         Ok(())
@@ -189,7 +216,8 @@ impl SisonkeEscrow {
         )?;
         Self::mark_funded(&env, &mut escrow)?;
         storage::save(&env, &escrow);
-        Self::index(&env, &escrow)?;
+        storage::index_push(&env, &escrow.payer, PartyRole::Payer, escrow.id)?;
+        Self::index_counterparties(&env, &escrow)?;
         Self::pull_funds(&env, &escrow)?;
         events::created(&env, &escrow);
         events::funded(&env, &escrow);
@@ -408,8 +436,9 @@ impl SisonkeEscrow {
         storage::party_count(&env, &party, role)
     }
 
-    /// One page of at most `PAGE_SIZE` escrow ids for `party` in `role`,
-    /// oldest first. Page `n` holds ids number `n * 50 ..`; empty past the end.
+    /// One page of at most `PAGE_SIZE` escrow ids for `party` in `role`.
+    /// Page `n` holds entries `n * 50 ..`; empty past the end. Creation
+    /// order for `Payer`, funding order for `Recipient` and `Arbiter`.
     pub fn party_escrow_ids(env: Env, party: Address, role: PartyRole, page: u32) -> Vec<u64> {
         storage::party_page(&env, &party, role, page)
     }
@@ -444,6 +473,18 @@ impl SisonkeEscrow {
         !storage::upgrades_locked(&env)
     }
 
+    /// Seconds a proposed upgrade must wait before `upgrade` can run it.
+    pub fn upgrade_delay(env: Env) -> u64 {
+        storage::upgrade_delay(&env)
+    }
+
+    /// The proposed upgrade, if any: its wasm hash and the earliest time
+    /// (`eta`) and latest time (`expires_at`) it can run. Until `eta` either
+    /// party can still move each escrow's funds out of the new code's reach.
+    pub fn pending_upgrade(env: Env) -> Option<PendingUpgrade> {
+        storage::pending_upgrade(&env)
+    }
+
     /// Version of the code currently running.
     pub fn version() -> u32 {
         VERSION
@@ -457,6 +498,7 @@ impl SisonkeEscrow {
 
     /// Every setting and counter above in one call.
     pub fn info(env: Env) -> ContractInfo {
+        let pending = storage::pending_upgrade(&env);
         ContractInfo {
             version: VERSION,
             storage_version: storage::storage_version(&env),
@@ -467,6 +509,10 @@ impl SisonkeEscrow {
             upgrades_locked: storage::upgrades_locked(&env),
             escrow_count: storage::peek_next_id(&env) - 1,
             total_locked: storage::total_locked(&env),
+            upgrade_delay: storage::upgrade_delay(&env),
+            pending_upgrade_hash: pending.as_ref().map(|p| p.wasm_hash.clone()),
+            pending_upgrade_eta: pending.as_ref().map(|p| p.eta),
+            pending_upgrade_expires_at: pending.map(|p| p.expires_at),
         }
     }
 
@@ -506,8 +552,8 @@ impl SisonkeEscrow {
         Ok(())
     }
 
-    /// Step two of an admin handover. The old admin loses every power here.
-    /// Signer: the pending admin.
+    /// Step two of an admin handover. The old admin loses every power here,
+    /// and any upgrade it proposed is cancelled. Signer: the pending admin.
     pub fn accept_admin(env: Env) -> Result<(), Error> {
         storage::extend_instance(&env);
         let new_admin = storage::pending_admin(&env).ok_or(Error::NoPendingAdmin)?;
@@ -515,34 +561,129 @@ impl SisonkeEscrow {
         let previous = storage::admin(&env);
         storage::set_admin(&env, &new_admin);
         storage::clear_pending_admin(&env);
+        // An upgrade proposed by the old admin doesn't survive the handover;
+        // the new admin must propose (and wait) again.
+        Self::clear_pending_upgrade(&env);
         events::admin_changed(&env, &new_admin, &previous);
         Ok(())
     }
 
     // ============================================================== upgrades
 
-    /// Replaces this contract's code with already-uploaded wasm, like UUPS
-    /// `upgradeTo`. The address, all storage and all locked funds stay the
-    /// same; the new code runs from the next call. Signer: admin.
+    /// Step one of an upgrade: names already-uploaded wasm and starts the
+    /// public delay. `upgrade` can run it from `eta = now + upgrade_delay()`
+    /// until `expires_at = eta + UPGRADE_WINDOW`; after that it has to be
+    /// proposed again, with a fresh delay. Proposing again replaces the
+    /// proposal (with an `upgrade_cancelled` event for the old one) and
+    /// restarts the delay. Nothing changes for escrows: during the delay
+    /// every exit function keeps working, so either party can move the funds
+    /// out of the new code's reach; before the deadline that means toward the
+    /// counterparty or through the arbiter (docs/CONTRACT.md, trust
+    /// assumption #1). Signer: admin.
     ///
     /// Upload the wasm first (`stellar contract upload`) and pass its hash.
-    /// Only a plain wasm hash is accepted: an executable reference would hand
-    /// control of the code to another account. If the new code changes the
-    /// storage layout, call its `migrate` next.
-    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
+    /// Allowed while a migration is pending, so a broken version can always
+    /// be replaced.
+    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
         storage::extend_instance(&env);
         storage::admin(&env).require_auth();
         if storage::upgrades_locked(&env) {
             return Err(Error::UpgradesLocked);
         }
-        events::upgraded(&env, &new_wasm_hash, VERSION);
-        env.deployer()
-            .update_current_contract(ContractExecutable::Wasm(new_wasm_hash));
+        let now = env.ledger().timestamp();
+        let eta = now
+            .checked_add(storage::upgrade_delay(&env))
+            .ok_or(Error::Overflow)?;
+        let pending = PendingUpgrade {
+            wasm_hash: new_wasm_hash,
+            proposed_at: now,
+            eta,
+            // Saturating: an expiry past the end of time is just "never".
+            expires_at: eta.saturating_add(UPGRADE_WINDOW),
+        };
+        Self::clear_pending_upgrade(&env);
+        storage::set_pending_upgrade(&env, &pending);
+        events::upgrade_proposed(&env, &pending);
         Ok(())
     }
 
-    /// Freezes the code permanently: `upgrade` fails from now on, for every
-    /// admin. Cannot be undone. Refused while a migration is pending, so a
+    /// Withdraws the pending upgrade proposal. Signer: admin.
+    pub fn cancel_upgrade(env: Env) -> Result<(), Error> {
+        storage::extend_instance(&env);
+        storage::admin(&env).require_auth();
+        if storage::pending_upgrade(&env).is_none() {
+            return Err(Error::NoPendingUpgrade);
+        }
+        Self::clear_pending_upgrade(&env);
+        Ok(())
+    }
+
+    /// Step two: replaces this contract's code with the proposed wasm, like
+    /// UUPS `upgradeTo`, between the proposal's `eta` and `expires_at`.
+    /// `expected_wasm_hash` must be the pending hash, so every signature on
+    /// this call approves one specific, reviewed piece of code. The address,
+    /// all storage and all locked funds stay the same; the new code runs
+    /// from the next call. Signer: admin.
+    ///
+    /// Only a plain wasm hash is ever installed: an executable reference
+    /// would hand control of the code to another account. If the new code
+    /// changes the storage layout, call its `migrate` next (anyone can).
+    pub fn upgrade(env: Env, expected_wasm_hash: BytesN<32>) -> Result<(), Error> {
+        storage::extend_instance(&env);
+        storage::admin(&env).require_auth();
+        if storage::upgrades_locked(&env) {
+            return Err(Error::UpgradesLocked);
+        }
+        let pending = storage::pending_upgrade(&env).ok_or(Error::NoPendingUpgrade)?;
+        if pending.wasm_hash != expected_wasm_hash {
+            return Err(Error::UpgradeHashMismatch);
+        }
+        let now = env.ledger().timestamp();
+        if now < pending.eta {
+            return Err(Error::UpgradeTooEarly);
+        }
+        if now > pending.expires_at {
+            return Err(Error::UpgradeExpired);
+        }
+        // Cleared first, so the new code never starts with a stale proposal.
+        storage::clear_pending_upgrade(&env);
+        events::upgraded(&env, &pending.wasm_hash, VERSION);
+        env.deployer()
+            .update_current_contract(ContractExecutable::Wasm(pending.wasm_hash));
+        Ok(())
+    }
+
+    /// Raises the upgrade delay. Increase only: a lower delay would itself
+    /// need a delay to be safe. A pending proposal is held to the new delay
+    /// too: its `eta` moves to `proposed_at + delay` if that is later (and
+    /// its `expires_at` with it). Signer: admin.
+    pub fn set_upgrade_delay(env: Env, delay: u64) -> Result<(), Error> {
+        storage::extend_instance(&env);
+        storage::admin(&env).require_auth();
+        if !(MIN_UPGRADE_DELAY..=MAX_UPGRADE_DELAY).contains(&delay) {
+            return Err(Error::InvalidUpgradeDelay);
+        }
+        let previous = storage::upgrade_delay(&env);
+        if delay < previous {
+            return Err(Error::UpgradeDelayDecrease);
+        }
+        storage::set_upgrade_delay(&env, delay);
+        let pending_eta = storage::pending_upgrade(&env).map(|mut pending| {
+            let eta = pending.proposed_at.saturating_add(delay);
+            if eta > pending.eta {
+                pending.eta = eta;
+                pending.expires_at = eta.saturating_add(UPGRADE_WINDOW);
+                storage::set_pending_upgrade(&env, &pending);
+            }
+            pending.eta
+        });
+        events::upgrade_delay_changed(&env, previous, delay, pending_eta);
+        Ok(())
+    }
+
+    /// Freezes the code permanently: `propose_upgrade` and `upgrade` fail
+    /// from now on, for every admin, and any pending proposal is cancelled.
+    /// Cannot be undone. Refused while a migration is pending, so a
     /// half-migrated contract can never be frozen. Signer: admin.
     pub fn lock_upgrades(env: Env) -> Result<(), Error> {
         storage::extend_instance(&env);
@@ -551,6 +692,7 @@ impl SisonkeEscrow {
         if storage::upgrades_locked(&env) {
             return Err(Error::UpgradesLocked);
         }
+        Self::clear_pending_upgrade(&env);
         storage::set_upgrades_locked(&env, true);
         events::upgrades_locked(&env);
         Ok(())
@@ -573,6 +715,15 @@ impl SisonkeEscrow {
 
 // Internal helpers. Not part of the contract interface.
 impl SisonkeEscrow {
+    /// Removes a pending upgrade proposal, if any, with an `upgrade_cancelled`
+    /// event.
+    fn clear_pending_upgrade(env: &Env) {
+        if let Some(pending) = storage::pending_upgrade(env) {
+            storage::clear_pending_upgrade(env);
+            events::upgrade_cancelled(env, &pending.wasm_hash);
+        }
+    }
+
     /// Writes are only safe on data in the layout this code was written for.
     fn ensure_storage_current(env: &Env) -> Result<(), Error> {
         if storage::storage_version(env) != STORAGE_VERSION {
@@ -677,9 +828,9 @@ impl SisonkeEscrow {
         Ok(())
     }
 
-    /// Adds the escrow to its payer's, recipient's and arbiter's index.
-    fn index(env: &Env, escrow: &Escrow) -> Result<(), Error> {
-        storage::index_push(env, &escrow.payer, PartyRole::Payer, escrow.id)?;
+    /// Adds a newly funded escrow to its recipient's and arbiter's index. The
+    /// payer's index got it at creation.
+    fn index_counterparties(env: &Env, escrow: &Escrow) -> Result<(), Error> {
         storage::index_push(env, &escrow.recipient, PartyRole::Recipient, escrow.id)?;
         if let Some(arbiter) = &escrow.arbiter {
             storage::index_push(env, arbiter, PartyRole::Arbiter, escrow.id)?;

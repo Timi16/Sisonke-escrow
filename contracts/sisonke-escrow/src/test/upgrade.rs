@@ -42,7 +42,13 @@ fn admin_upgrade_preserves_address_storage_and_funds() {
 
     let hash = s.env.deployer().upload_contract_wasm(v2::WASM);
     let args = (hash.clone(),).into_val(&s.env);
-    s.as_signer(&s.admin, "upgrade", args, || s.client.upgrade(&hash));
+    s.as_signer(&s.admin, "propose_upgrade", args, || {
+        s.client.propose_upgrade(&hash)
+    });
+    s.set_time(s.client.pending_upgrade().unwrap().eta);
+    s.as_signer(&s.admin, "upgrade", s.upgrade_args(), || {
+        s.client.upgrade(&s.pending_hash())
+    });
 
     let upgraded = v2::Client::new(&s.env, &s.contract);
     assert_eq!(upgraded.version(), 2);
@@ -56,18 +62,40 @@ fn admin_upgrade_preserves_address_storage_and_funds() {
     assert!(!upgraded.is_paused());
     // Every DataKey decodes through the fixture's copied types, the party
     // index included (PartyRole names are part of those keys).
-    for (who, role, v2_role) in [
-        (&s.payer, PartyRole::Payer, v2::PartyRole::Payer),
-        (&s.recipient, PartyRole::Recipient, v2::PartyRole::Recipient),
-        (&s.arbiter, PartyRole::Arbiter, v2::PartyRole::Arbiter),
+    // The payer's index has every escrow; the recipient's and arbiter's only
+    // the funded ones.
+    for (who, role, v2_role, want) in [
+        (
+            &s.payer,
+            PartyRole::Payer,
+            v2::PartyRole::Payer,
+            std::vec![created, funded, disputed],
+        ),
+        (
+            &s.recipient,
+            PartyRole::Recipient,
+            v2::PartyRole::Recipient,
+            std::vec![funded, disputed],
+        ),
+        (
+            &s.arbiter,
+            PartyRole::Arbiter,
+            v2::PartyRole::Arbiter,
+            std::vec![funded, disputed],
+        ),
     ] {
         let ids: std::vec::Vec<u64> = upgraded
             .party_escrow_ids(who, &v2_role, &0)
             .iter()
             .collect();
-        assert_eq!(ids, [created, funded, disputed], "{role:?}");
-        assert_eq!(upgraded.party_escrow_count(who, &v2_role), 3);
+        assert_eq!(ids, want, "{role:?}");
+        assert_eq!(
+            upgraded.party_escrow_count(who, &v2_role),
+            want.len() as u32
+        );
     }
+    assert_eq!(upgraded.upgrade_delay(), super::UPGRADE_DELAY);
+    assert_eq!(upgraded.pending_upgrade(), None, "consumed by upgrade");
     assert_eq!(s.balance(&s.contract), 2 * AMOUNT);
     assert_eq!(s.balances(), before.balances);
 
@@ -97,7 +125,7 @@ fn admin_upgrade_preserves_address_storage_and_funds() {
 fn upgrade_emits_upgraded_event() {
     let s = Setup::new();
     let hash = s.env.deployer().upload_contract_wasm(v2::WASM);
-    s.client.upgrade(&hash);
+    s.upgrade_to(&hash);
     assert_eq!(s.event_names(), [("upgraded".into(), None)]);
     assert_eq!(
         s.events(),
@@ -114,9 +142,21 @@ fn only_admin_can_upgrade() {
     let s = Setup::new();
     let id = s.funded();
     let hash = s.env.deployer().upload_contract_wasm(v2::WASM);
-    for who in [&s.payer, &s.recipient, &s.arbiter, &s.stranger] {
+    let outsiders = [&s.payer, &s.recipient, &s.arbiter, &s.stranger];
+    for who in outsiders {
         let args = (hash.clone(),).into_val(&s.env);
-        assert_auth_abort(s.as_signer(who, "upgrade", args, || s.client.try_upgrade(&hash)));
+        assert_auth_abort(s.as_signer(who, "propose_upgrade", args, || {
+            s.client.try_propose_upgrade(&hash)
+        }));
+    }
+    assert_eq!(s.client.pending_upgrade(), None);
+    // Even with a proposal past its eta, only the admin can run it.
+    s.client.propose_upgrade(&hash);
+    s.set_time(s.client.pending_upgrade().unwrap().eta);
+    for who in outsiders {
+        assert_auth_abort(s.as_signer(who, "upgrade", s.upgrade_args(), || {
+            s.client.try_upgrade(&s.pending_hash())
+        }));
     }
     assert_eq!(s.client.version(), VERSION);
     assert_eq!(s.status(id), Status::Funded);
@@ -128,10 +168,15 @@ fn upgrade_to_unknown_hash_fails() {
     let s = Setup::new();
     let id = s.funded();
     let unknown = BytesN::from_array(&s.env, &[0xab; 32]);
-    let result = s.client.try_upgrade(&unknown);
+    // The contract can't tell whether a hash was uploaded, so proposing it
+    // works; running it traps and changes nothing, the proposal included.
+    s.client.propose_upgrade(&unknown);
+    s.set_time(s.client.pending_upgrade().unwrap().eta);
+    let result = s.client.try_upgrade(&s.pending_hash());
     assert!(matches!(result, Err(Err(_))), "{result:?}");
     assert!(s.events().events().is_empty());
     assert_eq!(s.client.version(), VERSION);
+    assert_eq!(s.client.pending_upgrade().unwrap().wasm_hash, unknown);
     s.client.release(&id);
     assert_eq!(s.status(id), Status::Released);
 }
@@ -150,13 +195,26 @@ fn lock_upgrades_is_permanent_across_handover() {
     });
     assert!(!s.client.upgrades_enabled());
     assert!(s.client.info().upgrades_locked);
-    assert_eq!(s.client.try_upgrade(&hash), Err(Ok(Error::UpgradesLocked)));
+    assert_eq!(
+        s.client.try_propose_upgrade(&hash),
+        Err(Ok(Error::UpgradesLocked))
+    );
+    assert_eq!(
+        s.client.try_upgrade(&s.pending_hash()),
+        Err(Ok(Error::UpgradesLocked))
+    );
 
     let next = Address::generate(&s.env);
     s.client.propose_admin(&next);
     s.client.accept_admin();
     let args = (hash.clone(),).into_val(&s.env);
-    let result = s.as_signer(&next, "upgrade", args, || s.client.try_upgrade(&hash));
+    let result = s.as_signer(&next, "propose_upgrade", args, || {
+        s.client.try_propose_upgrade(&hash)
+    });
+    assert_eq!(result, Err(Ok(Error::UpgradesLocked)));
+    let result = s.as_signer(&next, "upgrade", s.upgrade_args(), || {
+        s.client.try_upgrade(&s.pending_hash())
+    });
     assert_eq!(result, Err(Ok(Error::UpgradesLocked)));
     assert_eq!(s.client.version(), VERSION);
     assert!(!s.client.upgrades_enabled());
@@ -229,6 +287,9 @@ fn writes_blocked_on_storage_version_mismatch() {
     s.client.extend_escrow_ttl(&funded);
     s.client.set_paused(&true);
     assert!(s.client.upgrades_enabled());
+    let fix = s.env.deployer().upload_contract_wasm(v2::WASM);
+    s.client.propose_upgrade(&fix);
+    assert_eq!(s.client.pending_upgrade().unwrap().wasm_hash, fix);
 }
 
 /// The fixture's v2 `migrate` runs once, permissionlessly, then the data is
@@ -238,7 +299,7 @@ fn fixture_migrate_runs_once() {
     let s = Setup::new();
     let id = s.funded();
     let hash = s.env.deployer().upload_contract_wasm(v2::WASM);
-    s.client.upgrade(&hash);
+    s.upgrade_to(&hash);
     let upgraded = v2::Client::new(&s.env, &s.contract);
     assert!(!upgraded.migrated());
 

@@ -8,7 +8,7 @@
 
 use soroban_sdk::{contractevent, Address, BytesN, Env, String};
 
-use crate::types::{Escrow, Status};
+use crate::types::{Escrow, PendingUpgrade, Status};
 
 /// Topics: `("sisonke", "init")`. Emitted once, by the constructor.
 #[contractevent(topics = ["sisonke", "init"])]
@@ -17,6 +17,7 @@ pub struct Init {
     pub admin: Address,
     pub token: Address,
     pub version: u32,
+    pub upgrade_delay: u64,
 }
 
 #[contractevent(topics = ["sisonke", "created"])]
@@ -133,6 +134,39 @@ pub struct AdminChanged {
     pub previous_admin: Address,
 }
 
+/// An upgrade was proposed; it can run from `eta`. Topics:
+/// `("sisonke", "upgrade_proposed")`. The web app should show this as a
+/// banner: until `eta`, either party of an escrow can still move its funds
+/// out of the new code's reach (docs/CONTRACT.md, trust assumption #1).
+#[contractevent(topics = ["sisonke", "upgrade_proposed"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpgradeProposed {
+    pub new_wasm_hash: BytesN<32>,
+    pub proposed_at: u64,
+    pub eta: u64,
+    pub expires_at: u64,
+}
+
+/// A pending upgrade was withdrawn: `cancel_upgrade`, `lock_upgrades`, an
+/// admin handover, or a new proposal replacing it (emitted just before the
+/// new `upgrade_proposed`). Topics: `("sisonke", "upgrade_cancelled")`.
+#[contractevent(topics = ["sisonke", "upgrade_cancelled"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpgradeCancelled {
+    pub wasm_hash: BytesN<32>,
+}
+
+/// Topics: `("sisonke", "upgrade_delay_changed")`.
+#[contractevent(topics = ["sisonke", "upgrade_delay_changed"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpgradeDelayChanged {
+    pub previous: u64,
+    pub delay: u64,
+    /// The pending proposal's `eta` after the change (pushed out if the new
+    /// delay requires it), or `None` if nothing is pending.
+    pub pending_eta: Option<u64>,
+}
+
 /// The code is being replaced. Topics: `("sisonke", "upgraded")`.
 #[contractevent(topics = ["sisonke", "upgraded"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -157,11 +191,38 @@ pub struct Migrated {
     pub to: u32,
 }
 
-pub fn init(env: &Env, admin: &Address, token: &Address, version: u32) {
+pub fn init(env: &Env, admin: &Address, token: &Address, version: u32, upgrade_delay: u64) {
     Init {
         admin: admin.clone(),
         token: token.clone(),
         version,
+        upgrade_delay,
+    }
+    .publish(env);
+}
+
+pub fn upgrade_proposed(env: &Env, pending: &PendingUpgrade) {
+    UpgradeProposed {
+        new_wasm_hash: pending.wasm_hash.clone(),
+        proposed_at: pending.proposed_at,
+        eta: pending.eta,
+        expires_at: pending.expires_at,
+    }
+    .publish(env);
+}
+
+pub fn upgrade_cancelled(env: &Env, wasm_hash: &BytesN<32>) {
+    UpgradeCancelled {
+        wasm_hash: wasm_hash.clone(),
+    }
+    .publish(env);
+}
+
+pub fn upgrade_delay_changed(env: &Env, previous: u64, delay: u64, pending_eta: Option<u64>) {
+    UpgradeDelayChanged {
+        previous,
+        delay,
+        pending_eta,
     }
     .publish(env);
 }
