@@ -1,0 +1,291 @@
+@import "tailwindcss";
+
+/* Every value the design boards use (docs/design/*.dc.html). Components use
+   these tokens only: no other hex, shadow or easing values. */
+@theme {
+  /* surfaces */
+  --color-ground: #F8F4E6;
+  --color-card: #FFFFFF;
+  --color-sand: #EFEADA;
+  --color-line: #E6DFCB;
+  --color-line-strong: #DDD6C2;
+  /* ink */
+  --color-ink: #15110A;
+  --color-muted: #5A5446;
+  --color-faint: #8C8370;
+  /* on ink (dark panels) */
+  --color-ink-2: #221D14;
+  --color-ink-3: #2E281D;
+  --color-ink-line: #3A3226;
+  --color-ink-btn-line: #6B6252;
+  --color-on-ink: #F8F4E6;
+  --color-on-ink-muted: #C9C1AD;
+  --color-on-ink-soft: #E4DCC6;
+  /* accents */
+  --color-lime: #D2F54B;
+  --color-violet: #5A2DE0;
+  --color-lilac: #DDD3FF;
+  --color-tomato: #E8492A;
+  --color-stamp-text: #FFF8E8;
+  --color-olive: #6B6E2E;
+  --color-photo: #E8DEC4;
+  --color-photo-2: #E2D7BA;
+  /* feedback */
+  --color-error: #B5321A;
+  --color-error-bg: #FCEDE8;
+  --color-header-glass: rgba(248, 244, 230, 0.94);
+  --color-scrim: rgba(21, 17, 10, 0.55);
+
+  --font-sans: var(--font-figtree), "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-anton), Impact, sans-serif;
+  --font-serif: var(--font-instrument-serif), Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+
+  --radius-pill: 999px;
+  --radius-section: 36px;
+  --radius-panel: 28px;
+  --radius-card: 26px;
+  --radius-tile: 22px;
+  --radius-menu: 20px;
+  --radius-box: 18px;
+  --radius-note: 16px;
+  --radius-field: 14px;
+  --radius-icon: 12px;
+
+  --shadow-lift: 0 16px 30px -18px rgba(21, 17, 10, 0.5);
+  --shadow-lift-row: 0 20px 40px -26px rgba(21, 17, 10, 0.5);
+  --shadow-lift-setup: 0 18px 40px -24px rgba(21, 17, 10, 0.45);
+  --shadow-lift-rules: 0 24px 40px -28px rgba(21, 17, 10, 0.5);
+  --shadow-action: 0 24px 50px -36px rgba(21, 17, 10, 0.6);
+  --shadow-step-active: 0 18px 40px -28px rgba(21, 17, 10, 0.6);
+  --shadow-float: 0 24px 50px -24px rgba(21, 17, 10, 0.45);
+  --shadow-menu: 0 30px 60px -24px rgba(21, 17, 10, 0.45);
+  --shadow-modal: 0 40px 80px -30px rgba(0, 0, 0, 0.6);
+  --shadow-stamp: 0 18px 30px -18px rgba(21, 17, 10, 0.6);
+  --shadow-badge: 0 8px 20px -10px rgba(21, 17, 10, 0.5);
+  --shadow-coin: 0 10px 22px -10px rgba(21, 17, 10, 0.6);
+  --shadow-coin-lg: 0 16px 30px -14px rgba(21, 17, 10, 0.5);
+  --shadow-cta-ring: 0 0 0 4px rgba(210, 245, 75, 0.35);
+  --shadow-cta-ring-hover: 0 0 0 6px rgba(210, 245, 75, 0.45);
+  --shadow-lime-glow: 0 0 14px rgba(210, 245, 75, 0.8);
+  --shadow-held: 0 0 0 10px rgba(210, 245, 75, 0.06), 0 0 60px rgba(210, 245, 75, 0.18);
+  /* landing: demo escrow card on ink, proof card on sand, phone hero card */
+  --shadow-demo: 0 40px 80px -40px rgba(0, 0, 0, 0.8);
+  --shadow-proof: 0 30px 60px -36px rgba(21, 17, 10, 0.35);
+  --shadow-float-sm: 0 20px 40px -20px rgba(21, 17, 10, 0.5);
+
+  --ease-rise: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-coin: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-travel: cubic-bezier(0.6, 0, 0.4, 1);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  a {
+    color: var(--color-ink);
+  }
+  a:hover {
+    color: var(--color-violet);
+  }
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--color-violet);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-faint);
+  }
+  button {
+    font: inherit;
+    color: inherit;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+@utility sr-only-focusable {
+  &:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* ------------------------------------------------------------ motion */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise-lg {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes pop-strong {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes slidein {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+@keyframes bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -4px); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(90, 45, 224, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(90, 45, 224, 0); }
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 245, 75, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(210, 245, 75, 0); }
+}
+@keyframes wobble {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+@keyframes stamp {
+  0% { opacity: 0; transform: rotate(-4deg) scale(1.25); }
+  60% { opacity: 1; transform: rotate(-4deg) scale(0.96); }
+  100% { opacity: 1; transform: rotate(-4deg) scale(1); }
+}
+@keyframes stamp-strong {
+  0% { opacity: 0; transform: rotate(-4deg) scale(1.3); }
+  60% { opacity: 1; transform: rotate(-4deg) scale(0.95); }
+  100% { opacity: 1; transform: rotate(-4deg) scale(1); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes to-right {
+  0% { left: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: calc(100% - 10px); opacity: 0; }
+}
+@keyframes to-left {
+  0% { left: calc(100% - 10px); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: 0; opacity: 0; }
+}
+@keyframes travel {
+  0% { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: calc(100% - 8px); opacity: 0; }
+}
+
+.rise { animation: rise 0.7s var(--ease-rise) both; }
+.rise-lg { animation: rise-lg 0.8s var(--ease-rise) both; }
+.rise-fast { animation: rise 0.6s var(--ease-rise) both; }
+.pop { animation: pop 0.45s var(--ease-rise) both; }
+.pop-strong { animation: pop-strong 0.45s var(--ease-rise) both; }
+.slidein { animation: slidein 0.4s ease both; }
+.slide-up { animation: slide-up 0.5s var(--ease-rise) both; }
+.shake { animation: shake 0.45s ease both; }
+.bob { animation: bob 2.4s ease-in-out infinite; }
+.spin { animation: spin 0.9s linear infinite; }
+.pulse { animation: pulse-ring 1.8s ease-in-out infinite; }
+.glow { animation: glow 2.2s ease-in-out infinite; }
+.wobble { animation: wobble 0.8s ease-in-out 2; }
+.stamp { animation: stamp 0.7s var(--ease-rise) 0.5s both; }
+.stamp-rules { animation: stamp-strong 0.7s var(--ease-rise) 0.45s both; }
+.stamp-phone { animation: stamp-strong 0.7s var(--ease-rise) 0.4s both; }
+.marquee { animation: marquee 32s linear infinite; }
+.marquee-phone { animation: marquee 22s linear infinite; }
+.pulse-r { animation: to-right 2.8s var(--ease-travel) infinite; }
+.pulse-l { animation: to-left 2.8s var(--ease-travel) 1.4s infinite; }
+.travel { animation: travel 2.2s var(--ease-travel) infinite; }
+
+.lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.lift-setup { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.lift-setup:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift-setup); }
+.lift-row { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.lift-row:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift-row); border-color: var(--color-ink) !important; color: var(--color-ink); }
+.lift-row .chev { transition: transform 0.2s ease; }
+.lift-row:hover .chev { transform: translateX(4px); }
+.lift-rules { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lift-rules:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift-rules); }
+.cta { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.cta:hover { transform: translateY(-2px); box-shadow: var(--shadow-cta-ring-hover) !important; }
+
+.coin-move { transition: left 1.2s var(--ease-coin), opacity 0.4s ease; }
+.step-bar { transition: width 0.8s var(--ease-rise); }
+.tabs-thumb { transition: transform 0.35s var(--ease-rise), width 0.35s var(--ease-rise); }
+
+/* The landing hero cards appear one by one (Main board script). */
+.hero-card { transition: opacity 0.5s var(--ease-rise), transform 0.5s var(--ease-rise); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .rise-lg, .rise-fast, .pop, .pop-strong, .slidein, .slide-up, .shake, .bob, .spin, .pulse, .glow,
+  .wobble, .stamp, .stamp-rules, .stamp-phone, .marquee, .marquee-phone, .pulse-r, .pulse-l, .travel {
+    animation: none !important;
+  }
+  .lift:hover, .lift-setup:hover, .lift-row:hover, .lift-rules:hover, .cta:hover, .lift-row:hover .chev {
+    transform: none;
+  }
+  .stamp, .stamp-rules, .stamp-phone { transform: rotate(-4deg); }
+  .pulse-r, .pulse-l, .travel { display: none; }
+  .coin-move, .step-bar, .tabs-thumb, .hero-card { transition: none; }
+}
