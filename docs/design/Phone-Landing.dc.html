@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sisonke landing on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Serif&amp;family=Figtree:wght@400..800&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#F8F4E6}
+*{box-sizing:border-box}
+a{color:#15110A}a:hover{color:#5A2DE0}
+a:focus-visible,button:focus-visible{outline:3px solid #5A2DE0;outline-offset:3px}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes stamp{0%{opacity:0;transform:rotate(-4deg) scale(1.3)}60%{opacity:1;transform:rotate(-4deg) scale(.95)}100%{opacity:1;transform:rotate(-4deg) scale(1)}}
+.stamp{animation:stamp .7s cubic-bezier(.2,.7,.2,1) .4s both}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{animation:marquee 22s linear infinite}
+@media (prefers-reduced-motion: reduce){.rise,.stamp,.marquee{animation:none !important}.stamp{transform:rotate(-4deg)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow-y: auto; overflow-x: hidden; font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif; color: #15110A; background: #F8F4E6;">
+
+<header style="position: sticky; top: 0; z-index: 5; padding: 12px 14px; background: rgba(248, 244, 230, 0.94);">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 14px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 999px;">
+    <a href="Main.dc.html" aria-label="Sisonke home" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+      <svg width="24" height="24" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg>
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+    </a>
+    <a href="Setup.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: #D2F54B; color: #15110A; font-size: 14px; font-weight: 700; text-decoration: none;">Open app</a>
+  </div>
+</header>
+
+<section style="padding: 20px 18px 36px; display: flex; flex-direction: column; gap: 22px;">
+  <h1 class="rise" aria-label="Nobody has to go first." style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; text-transform: uppercase; line-height: 0.95;">
+    <span style="display: inline-block; padding: 12px 16px 14px; background: #15110A; color: #F8F4E6; font-size: 44px;">Nobody has to</span>
+    <span class="stamp" style="display: inline-block; margin: -10px 0 0 28px; padding: 10px 16px 12px; background: #E8492A; color: #FFF8E8; font-size: 50px; transform: rotate(-4deg); box-shadow: 0 14px 24px -14px rgba(21, 17, 10, 0.6);">Go first.</span>
+  </h1>
+  <p class="rise" style="margin: 0; font-size: 17px; line-height: 1.55; color: #5A5446; animation-delay: 140ms;">Sisonke holds the money in a smart contract until the job is done. The payer releases it. The recipient can send it back. Nobody else can touch it, including us.</p>
+  <a href="Create.dc.html" class="rise" style="display: flex; align-items: center; justify-content: center; min-height: 58px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; text-transform: uppercase; text-decoration: none; box-shadow: 0 0 0 4px rgba(210, 245, 75, 0.35); animation-delay: 200ms;">Start an escrow</a>
+  <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5A5446; text-align: center;">Free on Stellar Testnet. Works with Freighter, xBull, Lobstr, Albedo and Hana.</p>
+
+  <div class="rise" style="position: relative; margin-top: 6px; padding-bottom: 46px; animation-delay: 260ms;">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+      <div style="position: relative; height: 300px; border-radius: 22px; overflow: hidden; background: #E8DEC4;">
+        <img src="/_blob/dfcafc7b4440736083d5171eb2e46869" alt="Megan, a café owner in Atlanta" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%;">
+        <span style="position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; background: #FFFFFF; border-radius: 999px; font-size: 12px; font-weight: 700;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #E8492A;"></span>Megan, Atlanta</span>
+      </div>
+      <div style="position: relative; height: 300px; border-radius: 22px; overflow: hidden; background: #E8DEC4;">
+        <img src="/_blob/b0a74f3e6afd78714fe45f352c7f704e" alt="Kemi, a designer in Lagos" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%;">
+        <span style="position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; background: #FFFFFF; border-radius: 999px; font-size: 12px; font-weight: 700;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #5A2DE0;"></span>Kemi, Lagos</span>
+      </div>
+    </div>
+    <span aria-hidden="true" style="position: absolute; left: 50%; top: 120px; transform: translateX(-50%); width: 54px; height: 54px; border-radius: 999px; background: #D2F54B; border: 4px solid #F8F4E6; display: flex; align-items: center; justify-content: center;"><svg width="30" height="30" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg></span>
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #FFFFFF; border-radius: 16px; box-shadow: 0 20px 40px -20px rgba(21, 17, 10, 0.5);">
+      <span style="flex: 0 0 40px; height: 40px; border-radius: 12px; background: #D2F54B; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="#15110A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700;">Payment released</span><span style="font-size: 12px; color: #5A5446;">Kemi got paid in seconds</span></div>
+      <span style="padding: 4px 10px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 11px; font-weight: 700;">Paid</span>
+    </div>
+  </div>
+</section>
+
+<div aria-hidden="true" style="overflow: hidden; padding: 16px 0;">
+  <div style="background: #D2F54B; transform: rotate(-2deg); margin: 0 -30px; padding: 14px 0; overflow: hidden;">
+    <div class="marquee" style="display: flex; width: max-content; gap: 28px; font-family: 'Anton', 'Impact', sans-serif; font-size: 30px; text-transform: uppercase; line-height: 1; white-space: nowrap;">
+      <span>Nobody goes first</span><span>●</span><span>Release or refund</span><span>●</span><span>Receipts anyone can check</span><span>●</span>
+      <span>Nobody goes first</span><span>●</span><span>Release or refund</span><span>●</span><span>Receipts anyone can check</span><span>●</span>
+    </div>
+  </div>
+</div>
+
+<section style="padding: 40px 18px; display: flex; flex-direction: column; gap: 18px;">
+  <span style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border: 1.5px solid #15110A; border-radius: 999px; font-size: 13px; font-weight: 600;">Why Sisonke</span>
+  <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1.15;">You found the perfect designer online, half a world away. You’ve never met. So who pays first?</p>
+  <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1.15; color: #5A5446;">With Sisonke, nobody has to guess.</p>
+</section>
+
+<section style="padding: 0 12px;">
+  <div style="background: #15110A; color: #F8F4E6; border-radius: 28px; padding: 30px 20px; display: flex; flex-direction: column; gap: 18px;">
+    <span style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border: 1.5px solid #F8F4E6; border-radius: 999px; font-size: 13px; font-weight: 600;">The one rule</span>
+    <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 38px; line-height: 1.02;">Money only moves toward the other person.</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; text-align: center;">
+      <div style="padding: 12px 6px; background: #221D14; border: 1px solid #3A3226; border-radius: 14px; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #C9C1AD;">Payer</span><span style="font-size: 15px; font-weight: 700;">Megan</span></div>
+      <div style="padding: 12px 6px; background: #D2F54B; color: #15110A; border-radius: 14px; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; font-weight: 600;">Contract</span><span style="font-size: 15px; font-weight: 700;">Held here</span></div>
+      <div style="padding: 12px 6px; background: #221D14; border: 1px solid #3A3226; border-radius: 14px; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #C9C1AD;">Recipient</span><span style="font-size: 15px; font-weight: 700;">Kemi</span></div>
+    </div>
+    <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #C9C1AD;">Megan can release it but can’t pull it back early. Kemi can refund it but can’t pay herself. The contract checks every signature.</p>
+    <a href="Rules.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 20px; text-transform: uppercase; text-decoration: none;">Read the rules</a>
+  </div>
+</section>
+
+<section style="padding: 40px 18px; display: flex; flex-direction: column; gap: 14px;">
+  <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 38px; line-height: 1.02;">For every deal where trust is still new.</h2>
+  <article style="background: #EFEADA; border-radius: 24px; padding: 10px 10px 22px; display: flex; flex-direction: column; gap: 16px;">
+    <img src="/_blob/de575c6cd51cf67034d6b82b0eb18079" alt="A freelancer laughing at her laptop in a café" style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 16px;">
+    <div style="padding: 0 10px; display: flex; flex-direction: column; gap: 6px;"><h3 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 26px; text-transform: uppercase;">Freelance gigs</h3><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #5A5446;">A client in the US locks the fee. A designer in Lagos starts work knowing it’s there.</p></div>
+  </article>
+  <article style="background: #EFEADA; border-radius: 24px; padding: 10px 10px 22px; display: flex; flex-direction: column; gap: 16px;">
+    <img src="/_blob/541d7ca794197a0f00e77f63347e9c8b" alt="A tomato seller at Bodija Market, Ibadan" style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 16px;">
+    <div style="padding: 0 10px; display: flex; flex-direction: column; gap: 6px;"><h3 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 26px; text-transform: uppercase;">Online sales</h3><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #5A5446;">Order from a stall you found on Instagram. Pay in, they ship, you release when it lands.</p></div>
+  </article>
+</section>
+
+<footer style="background: #5A2DE0; color: #FFFFFF; padding: 32px 18px 40px; display: flex; flex-direction: column; gap: 14px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#FFFFFF" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#FFFFFF" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#D2F54B"></path></svg>
+    <span style="font-size: 28px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+  </div>
+  <span style="font-size: 14px; color: #DDD3FF;">Sisonke is isiZulu for “all of us, together.”</span>
+  <span style="font-size: 14px; color: #DDD3FF;">Stellar Testnet only. No real funds.</span>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

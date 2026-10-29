@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sisonke escrow on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Serif&amp;family=Figtree:wght@400..800&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#F8F4E6}
+*{box-sizing:border-box}
+a{color:#15110A}a:hover{color:#5A2DE0}
+a:focus-visible,button:focus-visible{outline:3px solid #5A2DE0;outline-offset:3px}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-4px)}}
+.bob{animation:bob 2.4s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.rise,.bob{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow-y: auto; overflow-x: hidden; font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif; color: #15110A; background: #F8F4E6;">
+
+<header style="position: sticky; top: 0; z-index: 5; padding: 12px 14px; background: rgba(248, 244, 230, 0.94);">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 14px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 999px;">
+    <a href="Main.dc.html" aria-label="Sisonke home" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+      <svg width="24" height="24" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg>
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+    </a>
+    <span style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 13px; font-weight: 600;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #D2F54B;"></span>Megan</span>
+  </div>
+</header>
+
+<main style="padding: 10px 14px 40px; display: flex; flex-direction: column; gap: 14px;">
+  <a href="Dashboard.dc.html" class="rise" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 14px; font-weight: 600; color: #5A5446; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M13 4l-6 6 6 6" stroke="#5A5446" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>My escrows</a>
+
+  <div class="rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: 60ms;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+      <h1 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 38px; line-height: 1; text-transform: uppercase;">Escrow #0042</h1>
+      <span style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #D2F54B; border: 1.5px solid #15110A; font-size: 13px; font-weight: 700;">Funded</span>
+    </div>
+    <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 22px;">Logo for Megan’s café</p>
+  </div>
+
+  <section class="rise" aria-label="Where the money is" style="padding: 20px 10px 18px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; animation-delay: 120ms;">
+    <div aria-hidden="true" style="position: relative; height: 48px;">
+      <span style="position: absolute; left: 16.66%; right: 16.66%; top: 23px; height: 2px; background-image: repeating-linear-gradient(90deg, #15110A 0 6px, transparent 6px 12px);"></span>
+      <span style="position: absolute; left: 16.66%; top: 19px; width: 10px; height: 10px; margin-left: -5px; border-radius: 999px; background: #F8F4E6; border: 2px solid #15110A;"></span>
+      <span style="position: absolute; left: 83.33%; top: 19px; width: 10px; height: 10px; margin-left: -5px; border-radius: 999px; background: #F8F4E6; border: 2px solid #15110A;"></span>
+      <span class="bob" style="position: absolute; left: 50%; top: 2px; width: 44px; height: 44px; border-radius: 999px; background: #D2F54B; border: 2px solid #15110A; display: flex; align-items: center; justify-content: center; transform: translateX(-50%);"><svg width="24" height="24" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; text-align: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="font-size: 11px; color: #5A5446;">Payer</span><span style="font-size: 15px; font-weight: 700;">Megan</span><span style="margin-top: 2px; padding: 1px 8px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 11px; font-weight: 700;">You</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 14px; background: #D2F54B;"><span style="font-size: 11px; font-weight: 600;">Contract holds</span><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 24px; line-height: 1;">250.00</span><span style="font-size: 11px; font-weight: 600;">USDC</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="font-size: 11px; color: #5A5446;">Recipient</span><span style="font-size: 15px; font-weight: 700;">Kemi</span></div>
+    </div>
+    <p style="margin: 0; padding-top: 12px; border-top: 1px solid #EFEADA; font-size: 13px; line-height: 1.5; color: #5A5446; text-align: center;">Locked. It moves only when Megan releases it or Kemi refunds it.</p>
+  </section>
+
+  <section class="rise" aria-label="Actions" style="padding: 20px; background: #FFFFFF; border: 1.5px solid #15110A; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; animation-delay: 180ms;">
+    <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1;">Your move</h2>
+    <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #5A5446;">Release the money once you’re happy with the logo.</p>
+    <button type="button" style="min-height: 56px; width: 100%; border: 1.5px solid #15110A; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 20px; text-transform: uppercase; cursor: pointer;">Release to Kemi</button>
+    <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5A5446;">Sends all 250.00 USDC to Kemi. This can’t be undone.</p>
+  </section>
+
+  <section class="rise" aria-label="Not yours to do" style="padding: 16px 18px; background: #EFEADA; border-radius: 20px; display: flex; flex-direction: column; gap: 4px; animation-delay: 220ms;">
+    <span style="font-size: 13px; font-weight: 700;">Not yours to do</span>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #DDD6C2;"><span style="font-size: 13px;"><strong>Refund to Megan</strong><br><span style="color: #5A5446;">Only the recipient can do this.</span></span><button type="button" style="min-height: 44px; padding: 0 12px; border: 1.5px dashed #15110A; border-radius: 999px; background: transparent; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">Try anyway</button></div>
+  </section>
+
+  <section class="rise" aria-label="Progress" style="padding: 18px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 22px; display: flex; flex-direction: column; gap: 10px; animation-delay: 260ms;">
+    <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));">
+      <li style="display: flex; flex-direction: column; gap: 8px;"><div style="display: flex; align-items: center; gap: 6px; padding-right: 6px;"><span style="flex: 0 0 26px; height: 26px; border-radius: 999px; background: #15110A; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="#F8F4E6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="flex: 1 1 auto; height: 3px; border-radius: 999px; background: #15110A;"></span></div><span style="font-size: 12px; font-weight: 700;">Created</span></li>
+      <li style="display: flex; flex-direction: column; gap: 8px;"><div style="display: flex; align-items: center; gap: 6px; padding-right: 6px;"><span style="flex: 0 0 26px; height: 26px; border-radius: 999px; background: #D2F54B; border: 1.5px solid #15110A; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="#15110A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="flex: 1 1 auto; height: 3px; border-radius: 999px; background: #EFEADA;"></span></div><span style="font-size: 12px; font-weight: 700;">Funded</span></li>
+      <li style="display: flex; flex-direction: column; gap: 8px;"><div style="display: flex; align-items: center;"><span style="flex: 0 0 26px; height: 26px; border-radius: 999px; border: 1.5px solid #DDD6C2; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #5A5446;">3</span></div><span style="font-size: 12px; font-weight: 700; color: #5A5446;">Released or refunded</span></li>
+    </ol>
+  </section>
+
+  <section class="rise" aria-label="Activity" style="padding: 18px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 22px; display: flex; flex-direction: column; animation-delay: 300ms;">
+    <span style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">Activity</span>
+    <div style="display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid #EFEADA;"><span style="flex: 0 0 10px; height: 10px; margin-top: 5px; border-radius: 999px; border: 2px solid #15110A; background: #D2F54B;"></span><div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700;">250.00 USDC locked in</span><span style="font-size: 12px; color: #5A5446;">Megan signed, 24 Oct, 10:16</span><a href="https://stellar.expert/explorer/testnet" style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A2DE0;">d42b…11fe</a></div></div>
+    <div style="display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid #EFEADA;"><span style="flex: 0 0 10px; height: 10px; margin-top: 5px; border-radius: 999px; border: 2px solid #15110A; background: #FFFFFF;"></span><div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700;">Escrow created</span><span style="font-size: 12px; color: #5A5446;">Megan signed, 24 Oct, 10:14</span><a href="https://stellar.expert/explorer/testnet" style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A2DE0;">7c1e…a90b</a></div></div>
+  </section>
+
+  <section aria-label="Details" style="padding: 18px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 22px;">
+    <dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px;">
+      <div style="display: flex; flex-direction: column; gap: 2px;"><dt style="font-size: 12px; color: #5A5446;">Deadline</dt><dd style="margin: 0; font-size: 14px; font-weight: 600;">7 Nov 2026</dd></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><dt style="font-size: 12px; color: #5A5446;">Network</dt><dd style="margin: 0; font-size: 14px; font-weight: 600;">Stellar Testnet</dd></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><dt style="font-size: 12px; color: #5A5446;">Token</dt><dd style="margin: 0; font-size: 14px; font-weight: 600;">USDC by Circle</dd></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><dt style="font-size: 12px; color: #5A5446;">Contract</dt><dd style="margin: 0; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px;">CA3S…NK2E</dd></div>
+    </dl>
+  </section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

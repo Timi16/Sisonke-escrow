@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sisonke Escrow landing page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Serif&amp;family=Figtree:wght@400..800&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#F8F4E6}
+*{box-sizing:border-box}
+a{color:#15110A}a:hover{color:#5A2DE0}
+a:focus-visible,button:focus-visible{outline:3px solid #5A2DE0;outline-offset:3px}
+::selection{background:#D2F54B;color:#15110A}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.rise{animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+@keyframes stamp{0%{opacity:0;transform:rotate(-4deg) scale(1.25)}60%{opacity:1;transform:rotate(-4deg) scale(.96)}100%{opacity:1;transform:rotate(-4deg) scale(1)}}
+.stamp{animation:stamp .7s cubic-bezier(.2,.7,.2,1) .5s both}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{animation:marquee 32s linear infinite}
+@keyframes toRight{0%{left:0;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:calc(100% - 10px);opacity:0}}
+@keyframes toLeft{0%{left:calc(100% - 10px);opacity:0}12%{opacity:1}88%{opacity:1}100%{left:0;opacity:0}}
+.pulseR{animation:toRight 2.8s cubic-bezier(.6,0,.4,1) infinite}
+.pulseL{animation:toLeft 2.8s cubic-bezier(.6,0,.4,1) 1.4s infinite}
+.cta{transition:transform .2s ease,box-shadow .2s ease}
+.cta:hover{transform:translateY(-2px);box-shadow:0 0 0 6px rgba(210,245,75,.45) !important}
+@media (prefers-reduced-motion: reduce){.rise,.stamp,.marquee,.pulseR,.pulseL{animation:none !important}.stamp{transform:rotate(-4deg)}.pulseR,.pulseL{display:none}.cta:hover{transform:none}}
+</style>
+</helmet>
+<div style="font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif; color: #15110A; background: #F8F4E6; overflow-x: hidden;">
+
+<header style="max-width: 1240px; margin: 0 auto; padding: 18px 32px;">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 28px; padding: 10px 10px 10px 20px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 999px;">
+    <a href="#top" aria-label="Sisonke home" style="display: flex; align-items: center; gap: 10px; color: #15110A; text-decoration: none;">
+      <svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg>
+      <span style="font-size: 24px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+    </a>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; font-size: 16px; font-weight: 500;">
+      <a href="#how" style="text-decoration: none;">How it works</a>
+      <a href="#made-for" style="text-decoration: none;">Who it’s for</a>
+      <a href="#faq" style="text-decoration: none;">FAQ</a>
+      <a href="Setup.dc.html" class="cta" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 24px; border-radius: 999px; background: #D2F54B; color: #15110A; font-weight: 700; text-decoration: none;">Open app</a>
+    </nav>
+  </div>
+</header>
+
+<section id="top" style="max-width: 1240px; margin: 0 auto; padding: 48px 32px 112px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr)); gap: 56px; align-items: center;">
+  <div style="display: flex; flex-direction: column; gap: 32px;">
+    <h1 class="rise" aria-label="Nobody has to go first." style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; text-transform: uppercase; line-height: 0.95; letter-spacing: 0.005em;">
+      <span style="display: inline-block; padding: 18px 26px 22px; background: #15110A; color: #F8F4E6; font-size: clamp(48px, 5.6vw, 82px);">Nobody has to</span>
+      <span class="stamp" style="display: inline-block; margin: -14px 0 0 56px; padding: 14px 24px 18px; background: #E8492A; color: #FFF8E8; font-size: clamp(52px, 6vw, 90px); transform: rotate(-4deg); box-shadow: 0 18px 30px -18px rgba(21, 17, 10, 0.6);">Go first.</span>
+    </h1>
+    <p class="rise" style="margin: 0; font-size: 21px; line-height: 1.55; color: #5A5446; max-width: 30em; text-wrap: pretty; animation-delay: 160ms;">Sisonke holds the money in a smart contract until the job is done. The payer releases it. The recipient can send it back. Nobody else can touch it, including us.</p>
+    <div class="rise" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; animation-delay: 260ms;">
+      <a href="Create.dc.html" class="cta" style="display: inline-flex; align-items: center; min-height: 64px; padding: 0 34px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 24px; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none; box-shadow: 0 0 0 4px rgba(210, 245, 75, 0.35);">Start an escrow</a>
+      <a href="#how" style="font-size: 17px; font-weight: 600; text-underline-offset: 6px; text-decoration-thickness: 2px;">See how it works</a>
+    </div>
+    <p class="rise" style="margin: 0; font-size: 14px; line-height: 1.6; color: #5A5446; animation-delay: 320ms;">Free on Stellar Testnet. Works with Freighter, xBull, Lobstr, Albedo and Hana.</p>
+  </div>
+
+  <div class="rise" style="position: relative; animation-delay: 200ms;">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+      <div style="position: relative; min-height: 600px; border-radius: 28px; overflow: hidden; background-color: #E8DEC4;">
+        <img src="/_blob/dfcafc7b4440736083d5171eb2e46869" alt="Megan, a café owner in Atlanta, smiling in her apron" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%;">
+        <span style="position: absolute; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; background: #FFFFFF; border-radius: 999px; font-size: 14px; font-weight: 700; box-shadow: 0 8px 20px -10px rgba(21, 17, 10, 0.5);"><span style="width: 8px; height: 8px; border-radius: 999px; background: #E8492A;"></span>Megan in Atlanta</span>
+      </div>
+      <div style="position: relative; min-height: 600px; border-radius: 28px; overflow: hidden; background-color: #E8DEC4;">
+        <img src="/_blob/b0a74f3e6afd78714fe45f352c7f704e" alt="Kemi, a designer in Lagos, smiling with her laptop" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%;">
+        <span style="position: absolute; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; background: #FFFFFF; border-radius: 999px; font-size: 14px; font-weight: 700; box-shadow: 0 8px 20px -10px rgba(21, 17, 10, 0.5);"><span style="width: 8px; height: 8px; border-radius: 999px; background: #5A2DE0;"></span>Kemi in Lagos</span>
+      </div>
+    </div>
+    <span aria-hidden="true" style="position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); width: 68px; height: 68px; border-radius: 999px; background: #D2F54B; border: 4px solid #F8F4E6; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 30px -14px rgba(21, 17, 10, 0.5);"><svg width="38" height="38" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg></span>
+
+    <div style="position: absolute; left: -32px; bottom: 216px; width: min(330px, 86%); display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #FFFFFF; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(21, 17, 10, 0.45); transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); {{card1}}">
+      <span style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #15110A; display: flex; align-items: center; justify-content: center;"><svg width="28" height="28" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#F8F4E6" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#F8F4E6" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#D2F54B"></path></svg></span>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Money locked in</span><span style="font-size: 13px; color: #5A5446;">Megan’s payment is safe in the contract</span></div>
+      <span style="flex: 0 0 auto; padding: 5px 11px; border-radius: 999px; background: #D2F54B; font-size: 12px; font-weight: 700;">Locked</span>
+    </div>
+    <div style="position: absolute; left: -32px; bottom: 124px; width: min(330px, 86%); display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #FFFFFF; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(21, 17, 10, 0.45); transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); {{card2}}">
+      <span style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #EFEADA; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4h9l5 5v11H5z" stroke="#15110A" stroke-width="1.8" stroke-linejoin="round"></path><path d="M14 4v5h5" stroke="#15110A" stroke-width="1.8" stroke-linejoin="round"></path></svg></span>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Work delivered</span><span style="font-size: 13px; color: #5A5446;">Kemi sent the final logo</span></div>
+      <span style="flex: 0 0 auto; padding: 5px 11px; border-radius: 999px; background: #EFEADA; font-size: 12px; font-weight: 700;">Delivered</span>
+    </div>
+    <div style="position: absolute; left: -32px; bottom: 32px; width: min(330px, 86%); display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #FFFFFF; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(21, 17, 10, 0.45); transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); {{card3}}">
+      <span style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #D2F54B; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="#15110A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Payment released</span><span style="font-size: 13px; color: #5A5446;">Kemi got paid in seconds</span></div>
+      <span style="flex: 0 0 auto; padding: 5px 11px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 12px; font-weight: 700;">Paid</span>
+    </div>
+  </div>
+</section>
+
+<div aria-hidden="true" style="overflow: hidden; padding: 28px 0; margin: 0 0 24px;">
+  <div style="background: #D2F54B; transform: rotate(-2deg); margin: 0 -40px; padding: 22px 0; overflow: hidden;">
+    <div class="marquee" style="display: flex; width: max-content; align-items: center; gap: 40px; font-family: 'Anton', 'Impact', sans-serif; font-size: 46px; text-transform: uppercase; line-height: 1; white-space: nowrap;">
+      <span>Nobody goes first</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Money locked on Stellar</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Release or refund</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Receipts anyone can check</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Nobody goes first</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Money locked on Stellar</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Release or refund</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+      <span>Receipts anyone can check</span><svg width="40" height="40" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#15110A"></path></svg>
+    </div>
+  </div>
+</div>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 88px 32px 120px; display: flex; flex-wrap: wrap; gap: 32px 64px; align-items: flex-start;">
+  <div style="flex: 1 1 220px; max-width: 300px;"><span style="display: inline-flex; align-items: center; min-height: 36px; padding: 0 16px; border: 1.5px solid #15110A; border-radius: 999px; font-size: 15px; font-weight: 600;">Why Sisonke</span></div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 32px;">
+    <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.15; letter-spacing: -0.015em;">You found the perfect designer online, half a world away. You’ve never met. So who pays first?</p>
+    <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.15; letter-spacing: -0.015em; color: #5A5446;">With Sisonke, nobody has to guess. The money waits in a Stellar smart contract where you can both see it, and it only ever moves toward the other person.</p>
+    <a href="Create.dc.html" class="cta" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 60px; padding: 0 30px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none; box-shadow: 0 0 0 4px rgba(210, 245, 75, 0.35);">Start an escrow</a>
+  </div>
+</section>
+
+<section id="rule" style="padding: 0 32px;">
+  <div style="max-width: 1376px; margin: 0 auto; background: #15110A; color: #F8F4E6; border-radius: 36px; padding: clamp(40px, 6vw, 96px) clamp(24px, 5vw, 88px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 56px 72px; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+      <span style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 36px; padding: 0 16px; border: 1.5px solid #F8F4E6; border-radius: 999px; font-size: 15px; font-weight: 600;">The one rule</span>
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(42px, 4.6vw, 68px); line-height: 1.02; letter-spacing: -0.02em;">Money only moves toward the other person.</h2>
+      <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #C9C1AD; max-width: 32em;">The payer can release it but can’t pull it back early. The recipient can refund it but can’t pay themselves. The contract checks every signature, so the rule holds even if someone skips this website.</p>
+      <a href="Rules.dc.html" class="cta" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 60px; padding: 0 30px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none;">Read the rules</a>
+    </div>
+    <figure aria-label="The contract sits between payer and recipient. Release goes to the recipient, signed by the payer. Refund goes to the payer, signed by the recipient." style="margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(40px, 0.8fr) auto minmax(40px, 0.8fr) minmax(0, 1fr); align-items: center; gap: 0;">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; background: #221D14; border: 1px solid #3A3226; border-radius: 18px;">
+        <span style="font-size: 13px; color: #C9C1AD;">Payer</span>
+        <span style="font-size: 17px; font-weight: 700;">Megan</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #C9C1AD;">GCX4…7QPA</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 0 6px;">
+        <div style="position: relative; height: 12px; display: flex; align-items: center;"><svg width="9" height="12" viewBox="0 0 9 12" aria-hidden="true"><path d="M9 0 L0 6 L9 12 Z" fill="#6B6252"></path></svg><span style="flex: 1 1 auto; height: 2px; background: #3A3226;"></span><span class="pulseL" aria-hidden="true" style="position: absolute; top: 1px; left: 0; width: 10px; height: 10px; border-radius: 999px; background: #D2F54B; box-shadow: 0 0 14px rgba(210, 245, 75, 0.8); opacity: 0;"></span></div>
+        <span style="font-size: 12px; line-height: 1.35; color: #C9C1AD; text-align: center;">Refund, signed by the recipient</span>
+      </div>
+      <div style="width: 132px; height: 132px; border-radius: 30px; background: #221D14; border: 1px solid #6B6E2E; box-shadow: 0 0 0 10px rgba(210, 245, 75, 0.06), 0 0 60px rgba(210, 245, 75, 0.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="58" height="58" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#F8F4E6" stroke-width="2"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#F8F4E6" stroke-width="2"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#D2F54B"></path></svg>
+        <span style="font-size: 13px; font-weight: 700;">Held here</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 0 6px;">
+        <div style="position: relative; height: 12px; display: flex; align-items: center;"><span style="flex: 1 1 auto; height: 2px; background: #3A3226;"></span><svg width="9" height="12" viewBox="0 0 9 12" aria-hidden="true"><path d="M0 0 L9 6 L0 12 Z" fill="#6B6252"></path></svg><span class="pulseR" aria-hidden="true" style="position: absolute; top: 1px; left: 0; width: 10px; height: 10px; border-radius: 999px; background: #D2F54B; box-shadow: 0 0 14px rgba(210, 245, 75, 0.8); opacity: 0;"></span></div>
+        <span style="font-size: 12px; line-height: 1.35; color: #C9C1AD; text-align: center;">Release, signed by the payer</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; background: #221D14; border: 1px solid #3A3226; border-radius: 18px;">
+        <span style="font-size: 13px; color: #C9C1AD;">Recipient</span>
+        <span style="font-size: 17px; font-weight: 700;">Kemi</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #C9C1AD;">GBQ7…K2LD</span>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section id="made-for" style="max-width: 1240px; margin: 0 auto; padding: 128px 32px 120px; display: flex; flex-direction: column; gap: 48px;">
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 48px;">
+    <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(42px, 4.6vw, 68px); line-height: 1.02; letter-spacing: -0.02em; max-width: 13ch;">For every deal where trust is still new.</h2>
+    <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #5A5446; max-width: 26em;">If you’ve ever hesitated before paying someone, or before starting work for someone, this is for you.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 20px;">
+    <article style="background: #EFEADA; border-radius: 28px; padding: 14px 14px 28px; display: flex; flex-direction: column; gap: 22px;">
+      <img src="/_blob/de575c6cd51cf67034d6b82b0eb18079" alt="A freelancer laughing at her laptop in a café" style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 18px; background: #E2D7BA;">
+      <div style="padding: 0 14px; display: flex; flex-direction: column; gap: 10px;">
+        <h3 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 30px; text-transform: uppercase; letter-spacing: 0.01em;">Freelance gigs</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #5A5446;">A client in the US locks the fee. A designer in Lagos starts work knowing it’s there.</p>
+      </div>
+    </article>
+    <article style="background: #EFEADA; border-radius: 28px; padding: 14px 14px 28px; display: flex; flex-direction: column; gap: 22px;">
+      <img src="/_blob/541d7ca794197a0f00e77f63347e9c8b" alt="A tomato seller at Bodija Market, Ibadan" style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 18px; background: #E2D7BA;">
+      <div style="padding: 0 14px; display: flex; flex-direction: column; gap: 10px;">
+        <h3 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 30px; text-transform: uppercase; letter-spacing: 0.01em;">Online sales</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #5A5446;">Order from a stall you found on Instagram. Pay in, they ship, you release when it lands.</p>
+      </div>
+    </article>
+    <article style="background: #EFEADA; border-radius: 28px; padding: 14px 14px 28px; display: flex; flex-direction: column; gap: 22px;">
+      <img src="/_blob/7b85d44b952a39b3dd7d6c0cae9be9e4" alt="A young man grinning and giving the OK sign" style="display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 18px; background: #E2D7BA;">
+      <div style="padding: 0 14px; display: flex; flex-direction: column; gap: 10px;">
+        <h3 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 30px; text-transform: uppercase; letter-spacing: 0.01em;">Group-chat trades</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #5A5446;">Swap with someone you met yesterday, without either of you going first.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="how" style="padding: 0 32px;">
+  <div style="max-width: 1376px; margin: 0 auto; background: #15110A; color: #F8F4E6; border-radius: 36px; padding: clamp(40px, 6vw, 96px) clamp(24px, 5vw, 88px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 56px 72px; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 26px;">
+      <span style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 36px; padding: 0 16px; border: 1.5px solid #F8F4E6; border-radius: 999px; font-size: 15px; font-weight: 600;">How it works</span>
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(42px, 4.6vw, 68px); line-height: 1.02; letter-spacing: -0.02em;">Three steps from handshake to payout.</h2>
+      <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px;">
+        <li style="display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; background: #221D14; border: 1px solid #3A3226; border-radius: 16px;">
+          <span style="flex: 0 0 34px; height: 34px; border: 1.5px solid #F8F4E6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;">01</span>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 19px; font-weight: 600;">Create</span><span style="font-size: 15px; line-height: 1.5; color: #C9C1AD;">Who gets paid, how much, and a deadline. One signature saves it on-chain.</span></div>
+        </li>
+        <li style="display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; background: #221D14; border: 1px solid #3A3226; border-radius: 16px;">
+          <span style="flex: 0 0 34px; height: 34px; border: 1.5px solid #F8F4E6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;">02</span>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 19px; font-weight: 600;">Deposit</span><span style="font-size: 15px; line-height: 1.5; color: #C9C1AD;">The USDC moves into the contract. The other side can see it’s really there.</span></div>
+        </li>
+        <li style="display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; background: #221D14; border: 1px solid #3A3226; border-radius: 16px;">
+          <span style="flex: 0 0 34px; height: 34px; border: 1.5px solid #F8F4E6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;">03</span>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 19px; font-weight: 600;">Release or refund</span><span style="font-size: 15px; line-height: 1.5; color: #C9C1AD;">The payer releases when the work is in. The recipient refunds if it falls apart. It’s final either way.</span></div>
+        </li>
+      </ol>
+      <a href="Create.dc.html" class="cta" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 60px; padding: 0 30px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none;">Get started</a>
+    </div>
+    <div style="background: #F8F4E6; color: #15110A; border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 24px; box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.8);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <span style="font-size: 14px; color: #5A5446;">Escrow #0042</span>
+        <span style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #D2F54B; font-size: 13px; font-weight: 700;">Funded</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 14px; color: #5A5446;">Megan’s payment for the café logo</span>
+        <p style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-size: 64px; line-height: 0.98; text-transform: uppercase;">Safe in the middle.</p>
+        <span style="font-size: 15px; line-height: 1.5; color: #5A5446;">Neither of them can grab it. It moves when the work is done.</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+        <div style="padding: 14px; background: #EFEADA; border-radius: 14px; display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 12px; color: #5A5446;">Payer</span><span style="font-size: 15px; font-weight: 700;">Megan</span><span style="font-size: 12px; color: #5A5446;">Can release</span></div>
+        <div style="padding: 14px; background: #EFEADA; border-radius: 14px; display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 12px; color: #5A5446;">Recipient</span><span style="font-size: 15px; font-weight: 700;">Kemi</span><span style="font-size: 12px; color: #5A5446;">Can refund</span></div>
+      </div>
+      <span style="display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 16px; font-weight: 700;">Release payment</span>
+    </div>
+  </div>
+</section>
+
+<section id="rules" style="max-width: 1240px; margin: 0 auto; padding: 128px 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 48px 80px; align-items: start;">
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(42px, 4.6vw, 64px); line-height: 1.02; letter-spacing: -0.02em;">The rules live in the contract, not on our servers.</h2>
+    <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #5A5446; max-width: 30em;">If it isn’t in this table, the contract says no. Once an escrow is Released or Refunded it’s closed for good, so nothing pays out twice.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; min-width: 440px; border-collapse: collapse; font-size: 16px;">
+        <thead>
+          <tr style="text-align: left;">
+            <th scope="col" style="padding: 0 16px 14px 0; font-size: 14px; font-weight: 600; color: #5A5446; border-bottom: 1.5px solid #15110A;">Action</th>
+            <th scope="col" style="padding: 0 16px 14px; font-size: 14px; font-weight: 600; color: #5A5446; border-bottom: 1.5px solid #15110A;">Who signs</th>
+            <th scope="col" style="padding: 0 0 14px 16px; font-size: 14px; font-weight: 600; color: #5A5446; border-bottom: 1.5px solid #15110A;">Allowed when</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row" style="padding: 18px 16px 18px 0; text-align: left; font-weight: 700; border-bottom: 1px solid #DDD6C2;">Deposit</th><td style="padding: 18px 16px; border-bottom: 1px solid #DDD6C2;">Payer</td><td style="padding: 18px 0 18px 16px; color: #5A5446; border-bottom: 1px solid #DDD6C2;">Awaiting deposit, before the deadline</td></tr>
+          <tr><th scope="row" style="padding: 18px 16px 18px 0; text-align: left; font-weight: 700; border-bottom: 1px solid #DDD6C2;">Release</th><td style="padding: 18px 16px; border-bottom: 1px solid #DDD6C2;">Payer only</td><td style="padding: 18px 0 18px 16px; color: #5A5446; border-bottom: 1px solid #DDD6C2;">Funded</td></tr>
+          <tr><th scope="row" style="padding: 18px 16px 18px 0; text-align: left; font-weight: 700; border-bottom: 1px solid #DDD6C2;">Refund</th><td style="padding: 18px 16px; border-bottom: 1px solid #DDD6C2;">Recipient only</td><td style="padding: 18px 0 18px 16px; color: #5A5446; border-bottom: 1px solid #DDD6C2;">Funded</td></tr>
+          <tr><th scope="row" style="padding: 18px 16px 18px 0; text-align: left; font-weight: 700;">Reclaim</th><td style="padding: 18px 16px;">Payer only</td><td style="padding: 18px 0 18px 16px; color: #5A5446;">Funded, after the deadline</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <a href="Rules.dc.html" style="align-self: flex-start; font-size: 17px; font-weight: 600; text-underline-offset: 6px; text-decoration-thickness: 2px;">Read the full rules and proof</a>
+  </div>
+</section>
+
+<section id="proof" style="padding: 0 32px;">
+  <div style="max-width: 1376px; margin: 0 auto; background: #EFEADA; border-radius: 36px; padding: clamp(40px, 6vw, 88px) clamp(24px, 5vw, 88px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 48px 72px; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(42px, 4.6vw, 64px); line-height: 1.02; letter-spacing: -0.02em;">Don’t trust us. Check the receipts.</h2>
+      <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #5A5446; max-width: 30em;">Every step is a public Stellar transaction. Open any of them on Stellar Expert to see who signed, what moved and when.</p>
+      <p style="margin: 0; font-size: 15px; color: #5A5446;">Contract <span style="margin-left: 8px; padding: 3px 10px; background: #F8F4E6; border: 1.5px dashed #8C8370; border-radius: 8px; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #15110A;">[CONTRACT ID]</span></p>
+    </div>
+    <div style="background: #FFFFFF; border-radius: 24px; padding: 26px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 30px 60px -36px rgba(21, 17, 10, 0.35);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px;">
+        <span style="font-size: 17px; font-weight: 700;">Escrow #0042</span>
+        <span style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 13px; font-weight: 700;">Released</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 14px 0; border-top: 1px solid #EFEADA;"><div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 600;">Escrow created</span><span style="font-size: 13px; color: #5A5446;">Megan signed, 24 Oct, 10:14</span></div><a href="https://stellar.expert/explorer/testnet" style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5A2DE0;">7c1e…a90b</a></div>
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 14px 0; border-top: 1px solid #EFEADA;"><div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 600;">Payment locked in</span><span style="font-size: 13px; color: #5A5446;">Megan signed, 24 Oct, 10:16</span></div><a href="https://stellar.expert/explorer/testnet" style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5A2DE0;">d42b…11fe</a></div>
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 14px 0; border-top: 1px solid #EFEADA;"><div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 600;">Released to Kemi</span><span style="font-size: 13px; color: #5A5446;">Megan signed, 27 Oct, 15:02</span></div><a href="https://stellar.expert/explorer/testnet" style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5A2DE0;">a90f…3c7d</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="max-width: 1240px; margin: 0 auto; padding: 128px 32px; display: flex; flex-wrap: wrap; gap: 40px 80px; align-items: flex-start;">
+  <h2 style="flex: 1 1 320px; margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(42px, 4.6vw, 64px); line-height: 1.02; letter-spacing: -0.02em;">Questions, answered.</h2>
+  <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; border-top: 1.5px solid #15110A;">
+    <sc-for list="{{faqs}}" as="f" hint-placeholder-count="6">
+      <div style="border-bottom: 1px solid #DDD6C2;">
+        <button type="button" onClick="{{f.toggle}}" aria-expanded="{{f.expanded}}" style="width: 100%; min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 0; border: 0; background: transparent; color: #15110A; font: inherit; font-size: 20px; font-weight: 600; text-align: left; cursor: pointer;">
+          <span>{{f.q}}</span>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" style="flex: 0 0 22px; transition: transform .25s ease; {{f.iconStyle}}"><path d="M11 3v16M3 11h16" stroke="#15110A" stroke-width="2" stroke-linecap="round"></path></svg>
+        </button>
+        <sc-if value="{{f.open}}" hint-placeholder-val="{{false}}">
+          <p style="margin: 0; padding: 0 48px 24px 0; font-size: 17px; line-height: 1.6; color: #5A5446;">{{f.a}}</p>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="max-width: 1240px; margin: 0 auto; padding: 0 32px 128px; display: flex; flex-direction: column; align-items: center; gap: 40px; text-align: center;">
+  <h2 aria-label="Deal with anyone. Trust the contract." style="margin: 0; display: flex; flex-direction: column; align-items: center; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; text-transform: uppercase; line-height: 0.95;">
+    <span style="display: inline-block; padding: 16px 26px 20px; background: #15110A; color: #F8F4E6; font-size: clamp(44px, 5.4vw, 78px);">Deal with anyone.</span>
+    <span style="display: inline-block; margin-top: -12px; padding: 12px 22px 16px; background: #5A2DE0; color: #FFFFFF; font-size: clamp(40px, 5vw, 70px); transform: rotate(3deg); box-shadow: 0 18px 30px -18px rgba(21, 17, 10, 0.6);">Trust the contract.</span>
+  </h2>
+  <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #5A5446; max-width: 30em;">For freelance gigs, marketplace sales and trades with someone from the group chat.</p>
+  <a href="Create.dc.html" class="cta" style="display: inline-flex; align-items: center; min-height: 64px; padding: 0 36px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 24px; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none; box-shadow: 0 0 0 4px rgba(210, 245, 75, 0.35);">Start an escrow</a>
+</section>
+
+<footer style="background: #5A2DE0; color: #FFFFFF;">
+  <div style="max-width: 1240px; margin: 0 auto; padding: 80px 32px 48px; display: flex; flex-direction: column; gap: 56px;">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px 64px;">
+      <a href="#top" aria-label="Sisonke home" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none; align-self: flex-start;">
+        <svg width="44" height="44" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#FFFFFF" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#FFFFFF" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#D2F54B"></path></svg>
+        <span style="font-size: 40px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+      </a>
+      <div style="display: flex; flex-wrap: wrap; gap: 40px 96px;">
+        <nav aria-label="Product" style="display: flex; flex-direction: column; gap: 14px; font-size: 17px;">
+          <span style="font-size: 15px; color: #DDD3FF;">Product</span>
+          <a href="Escrow.dc.html" style="color: #FFFFFF; text-decoration: none;">Open app</a>
+          <a href="Create.dc.html" style="color: #FFFFFF; text-decoration: none;">Start an escrow</a>
+          <a href="Rules.dc.html" style="color: #FFFFFF; text-decoration: none;">Rules and proof</a>
+        </nav>
+        <nav aria-label="Build" style="display: flex; flex-direction: column; gap: 14px; font-size: 17px;">
+          <span style="font-size: 15px; color: #DDD3FF;">Build</span>
+          <a href="#" style="color: #FFFFFF; text-decoration: none;">GitHub [REPO LINK]</a>
+          <a href="https://stellar.expert/explorer/testnet" style="color: #FFFFFF; text-decoration: none;">Stellar Expert</a>
+          <a href="https://lab.stellar.org" style="color: #FFFFFF; text-decoration: none;">Stellar Lab</a>
+        </nav>
+      </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 40px; padding-top: 28px; border-top: 1px solid rgba(255, 255, 255, 0.25); font-size: 15px; color: #DDD3FF;">
+      <span>Sisonke is isiZulu for “all of us, together.”</span>
+      <span>Stellar Testnet only. No real funds.</span>
+      <span>Photos on Unsplash by Vitaly Gariev, Iwaria, Joyce Busola and Tunde Buremo.</span>
+    </div>
+  </div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":7800}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = { phase: 3, open: 0 };
+    this.timers = [];
+    this.stopped = false;
+  }
+  componentDidMount() {
+    let reduce = false;
+    try {
+      reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) {}
+    if (reduce) return;
+    this.cycle();
+  }
+  componentWillUnmount() {
+    this.stopped = true;
+    this.timers.forEach((t) => clearTimeout(t));
+  }
+  cycle() {
+    if (this.stopped) return;
+    this.timers.forEach((t) => clearTimeout(t));
+    this.timers = [];
+    this.setState({ phase: 0 });
+    this.timers.push(setTimeout(() => this.setState({ phase: 1 }), 900));
+    this.timers.push(setTimeout(() => this.setState({ phase: 2 }), 2500));
+    this.timers.push(setTimeout(() => this.setState({ phase: 3 }), 4100));
+    this.timers.push(setTimeout(() => this.cycle(), 8600));
+  }
+  renderVals() {
+    const ph = this.state.phase;
+    const shown = 'opacity: 1; transform: translateY(0) scale(1);';
+    const hidden = 'opacity: 0; transform: translateY(18px) scale(0.97);';
+    const list = [
+      { q: 'Does Sisonke ever hold my money?', a: 'No. Your USDC sits in the escrow contract on Stellar. This website has no keys, and no admin function can move or freeze it.' },
+      { q: 'Who can release or refund?', a: 'Only the payer can release, and only to the recipient. Only the recipient can refund, and only to the payer. Nobody else’s signature works.' },
+      { q: 'What if the other person disappears?', a: 'If the deadline passes and the money is still locked, the payer can take it back. Before the deadline, it stays exactly where it is.' },
+      { q: 'Can money be paid out twice?', a: 'No. Once an escrow is Released or Refunded it’s closed, and the contract rejects any second attempt.' },
+      { q: 'Is this real money?', a: 'Not yet. Sisonke runs on Stellar Testnet with test USDC, so you can try every step for free.' },
+      { q: 'Which wallets can I use?', a: 'Freighter, xBull, Lobstr, Albedo and Hana. You approve every step in your own wallet.' }
+    ];
+    const faqs = list.map((f, i) => {
+      const open = this.state.open === i;
+      return {
+        q: f.q,
+        a: f.a,
+        open: open,
+        expanded: open ? 'true' : 'false',
+        iconStyle: open ? 'transform: rotate(45deg);' : 'transform: rotate(0deg);',
+        toggle: () => this.setState({ open: this.state.open === i ? -1 : i })
+      };
+    });
+    return {
+      card1: ph >= 1 ? shown : hidden,
+      card2: ph >= 2 ? shown : hidden,
+      card3: ph >= 3 ? shown : hidden,
+      faqs: faqs
+    };
+  }
+}
+</script>
+</body>
+</html>

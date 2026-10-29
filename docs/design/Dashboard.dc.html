@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sisonke, my escrows</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Serif&amp;family=Figtree:wght@400..800&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#F8F4E6}
+*{box-sizing:border-box}
+a{color:#15110A}a:hover{color:#15110A}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #5A2DE0;outline-offset:3px}
+::selection{background:#D2F54B;color:#15110A}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(90,45,224,.45)}50%{box-shadow:0 0 0 6px rgba(90,45,224,0)}}
+.pulse{animation:pulse 1.8s ease-in-out infinite}
+.lift{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.lift:hover{transform:translateY(-2px);box-shadow:0 20px 40px -26px rgba(21,17,10,.5);border-color:#15110A !important}
+.lift:hover .chev{transform:translateX(4px)}
+.chev{transition:transform .2s ease}
+@media (prefers-reduced-motion: reduce){.rise,.pulse{animation:none !important}.lift:hover{transform:none}.lift:hover .chev{transform:none}}
+</style>
+</helmet>
+<div style="font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif; color: #15110A; background: #F8F4E6; min-height: 100vh;">
+
+<header class="rise" style="max-width: 1240px; margin: 0 auto; padding: 18px 24px 0;">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 8px 8px 8px 18px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 28px;">
+    <a href="Main.dc.html" aria-label="Sisonke home" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+      <svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg>
+      <span style="font-size: 21px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+    </a>
+    <nav aria-label="App" style="display: flex; flex-wrap: wrap; gap: 4px;">
+      <a href="Dashboard.dc.html" aria-current="page" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; background: #EFEADA; font-size: 15px; font-weight: 700; text-decoration: none;">My escrows</a>
+      <a href="Create.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 15px; font-weight: 600; text-decoration: none;">New escrow</a>
+      <a href="Rules.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 15px; font-weight: 600; text-decoration: none;">Rules</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+      <a href="Lookup.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid #E6DFCB; background: #F8F4E6; color: #15110A; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="#15110A" stroke-width="2"></circle><path d="M14 14l4 4" stroke="#15110A" stroke-width="2" stroke-linecap="round"></path></svg>Find an escrow</a>
+      <span style="display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #EFEADA; font-size: 13px; font-weight: 600;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #5A2DE0;"></span>Testnet</span>
+      <span style="display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #D2F54B;"></span>GCX4…7QPA</span>
+    </div>
+  </div>
+</header>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-direction: column; gap: 32px;">
+  <div class="rise" style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 40px; animation-delay: 60ms;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(44px, 5.4vw, 76px); line-height: 0.98; letter-spacing: -0.02em;">Your escrows</h1>
+      <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #5A5446; max-width: 34em;">Everything you’re paying for and getting paid for, in one place.</p>
+    </div>
+    <a href="Create.dc.html" class="lift" style="display: inline-flex; align-items: center; gap: 10px; min-height: 58px; padding: 0 28px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; text-transform: uppercase; text-decoration: none; box-shadow: 0 0 0 4px rgba(210, 245, 75, 0.35);"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="#15110A" stroke-width="2.6" stroke-linecap="round"></path></svg>New escrow</a>
+  </div>
+
+  <div class="rise" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; animation-delay: 120ms;">
+    <div role="tablist" aria-label="Escrow side" style="position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(420px, 100%); padding: 5px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 999px;">
+      <span aria-hidden="true" style="position: absolute; top: 5px; bottom: 5px; left: 5px; width: calc(50% - 5px); border-radius: 999px; background: #15110A; transition: transform .35s cubic-bezier(.2,.7,.2,1); transform: {{tabShift}};"></span>
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+        <button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="position: relative; z-index: 1; min-height: 46px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: color .3s ease; {{t.style}}">{{t.label}} <span style="opacity: 0.7; font-weight: 600;">{{t.count}}</span></button>
+      </sc-for>
+    </div>
+    <div role="group" aria-label="Filter by status" style="display: flex; flex-wrap: wrap; gap: 8px;">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+        <button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="min-height: 40px; padding: 0 16px; border: 1.5px solid; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color .2s ease, color .2s ease; {{f.style}}">{{f.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="rise" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; animation-delay: 160ms;">
+    <div style="padding: 22px 24px; background: #15110A; color: #F8F4E6; border-radius: 22px; display: flex; flex-direction: column; gap: 6px;">
+      <span style="font-size: 14px; color: #C9C1AD;">Need your attention</span>
+      <span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 52px; line-height: 1; color: #D2F54B;">{{statMove}}</span>
+    </div>
+    <div style="padding: 22px 24px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 22px; display: flex; flex-direction: column; gap: 6px;">
+      <span style="font-size: 14px; color: #5A5446;">Locked right now</span>
+      <span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 52px; line-height: 1;">{{statLocked}}</span>
+    </div>
+    <div style="padding: 22px 24px; background: #EFEADA; border-radius: 22px; display: flex; flex-direction: column; gap: 6px;">
+      <span style="font-size: 14px; color: #5A5446;">Closed for good</span>
+      <span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 52px; line-height: 1;">{{statClosed}}</span>
+    </div>
+  </div>
+
+  <ul aria-live="polite" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <li class="rise" style="animation-delay: {{r.delay}};">
+        <a href="Escrow.dc.html" class="lift" style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 20px 22px; background: #FFFFFF; border: 1.5px solid #E6DFCB; border-radius: 22px; text-decoration: none; color: #15110A;">
+          <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A5446;">{{r.id}}</span>
+            <span style="font-size: 18px; font-weight: 700;">{{r.title}}</span>
+            <span style="font-size: 14px; color: #5A5446;">{{r.who}} <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px;">{{r.addr}}</span></span>
+          </div>
+          <div style="flex: 0 0 auto; display: flex; align-items: baseline; gap: 6px; min-width: 130px;">
+            <span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums;">{{r.amount}}</span>
+            <span style="font-size: 13px; font-weight: 600; color: #5A5446;">USDC</span>
+          </div>
+          <span style="flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; {{r.chip}}">{{r.status}}</span>
+          <div style="flex: 1 1 200px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+            <sc-if value="{{r.move}}" hint-placeholder-val="{{true}}"><span class="pulse" style="flex: 0 0 9px; height: 9px; border-radius: 999px; background: #5A2DE0;"></span></sc-if>
+            <span style="font-size: 14px; font-weight: 600; text-align: right; {{r.hintStyle}}">{{r.hint}}</span>
+            <svg class="chev" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="flex: 0 0 18px;"><path d="M7 4l6 6-6 6" stroke="#15110A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+        </a>
+      </li>
+    </sc-for>
+  </ul>
+
+  <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+    <div class="rise" style="padding: 48px 24px; background: #EFEADA; border-radius: 24px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+      <svg width="48" height="48" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg>
+      <span style="font-size: 18px; font-weight: 700;">Nothing here yet</span>
+      <span style="font-size: 15px; color: #5A5446;">Try another filter, or start a new escrow.</span>
+    </div>
+  </sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = { tab: 'paying', filter: 'all' };
+  }
+  renderVals() {
+    const s = this.state;
+    const data = {
+      paying: [
+        { id: '#0042', title: 'Café logo', name: 'Kemi', addr: 'GBQ7…K2LD', amount: '250.00', status: 'funded' },
+        { id: '#0047', title: 'Menu photos', name: 'Tobi', addr: 'GDK3…P9QA', amount: '120.00', status: 'created' },
+        { id: '#0031', title: 'Website copy', name: 'Ada', addr: 'GAM2…7TLE', amount: '400.00', status: 'released' },
+        { id: '#0029', title: 'Packaging mockups', name: 'Zee', addr: 'GCV8…L2NB', amount: '180.00', status: 'refunded' }
+      ],
+      receiving: [
+        { id: '#0050', title: 'Brand guide for Sole Studio', name: 'Jordan', addr: 'GBX2…Q4RS', amount: '600.00', status: 'funded' },
+        { id: '#0044', title: 'Social media graphics', name: 'Priya', addr: 'GAE7…M3HD', amount: '90.00', status: 'created' },
+        { id: '#0038', title: 'Landing page design', name: 'Leo', addr: 'GDF4…T8UW', amount: '350.00', status: 'released' }
+      ]
+    };
+    const labels = { created: 'Awaiting deposit', funded: 'Funded', released: 'Released', refunded: 'Refunded' };
+    const chips = {
+      created: 'border: 1.5px dashed #15110A; background: transparent; color: #15110A;',
+      funded: 'border: 1.5px solid #15110A; background: #D2F54B; color: #15110A;',
+      released: 'border: 1.5px solid #15110A; background: #15110A; color: #F8F4E6;',
+      refunded: 'border: 1.5px solid #15110A; background: transparent; color: #15110A;'
+    };
+    const hints = {
+      paying: { created: ['Deposit to lock it', true], funded: ['Release when the work is in', true], released: ['Paid out', false], refunded: ['Came back to you', false] },
+      receiving: { created: ['Waiting for their deposit', false], funded: ['Locked. Safe to start work', true], released: ['You got paid', false], refunded: ['You sent it back', false] }
+    };
+    const list = data[s.tab];
+    const closed = (x) => x.status === 'released' || x.status === 'refunded';
+    const match = (x) => s.filter === 'all' || (s.filter === 'closed' ? closed(x) : x.status === s.filter);
+    const rows = list.filter(match).map((x, i) => {
+      const h = hints[s.tab][x.status];
+      return {
+        id: x.id,
+        title: x.title,
+        who: (s.tab === 'paying' ? 'to ' : 'from ') + x.name,
+        addr: x.addr,
+        amount: x.amount,
+        status: labels[x.status],
+        chip: chips[x.status],
+        hint: h[0],
+        move: h[1],
+        hintStyle: h[1] ? 'color: #15110A;' : 'color: #5A5446;',
+        delay: (i * 70) + 'ms'
+      };
+    });
+    const tabs = [['paying', 'I’m paying'], ['receiving', 'I’m receiving']].map((t) => ({
+      label: t[1],
+      count: String(data[t[0]].length),
+      selected: s.tab === t[0] ? 'true' : 'false',
+      style: s.tab === t[0] ? 'color: #F8F4E6;' : 'color: #15110A;',
+      pick: () => this.setState({ tab: t[0] })
+    }));
+    const filters = [['all', 'All'], ['created', 'Awaiting deposit'], ['funded', 'Funded'], ['closed', 'Closed']].map((f) => ({
+      label: f[1],
+      pressed: s.filter === f[0] ? 'true' : 'false',
+      style: s.filter === f[0] ? 'background: #15110A; color: #F8F4E6; border-color: #15110A;' : 'background: transparent; color: #15110A; border-color: #DDD6C2;',
+      pick: () => this.setState({ filter: f[0] })
+    }));
+    return {
+      tabs: tabs,
+      tabShift: s.tab === 'paying' ? 'translateX(0)' : 'translateX(100%)',
+      filters: filters,
+      rows: rows,
+      empty: rows.length === 0,
+      statMove: String(list.filter((x) => hints[s.tab][x.status][1]).length),
+      statLocked: String(list.filter((x) => x.status === 'funded').length),
+      statClosed: String(list.filter(closed).length)
+    };
+  }
+}
+</script>
+</body>
+</html>

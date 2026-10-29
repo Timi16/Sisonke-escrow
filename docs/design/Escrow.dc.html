@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sisonke, escrow details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Serif&amp;family=Figtree:wght@400..800&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#F8F4E6}
+*{box-sizing:border-box}
+a{color:#15110A}a:hover{color:#5A2DE0}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #5A2DE0;outline-offset:3px}
+::selection{background:#D2F54B;color:#15110A}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+.pop{animation:pop .45s cubic-bezier(.2,.7,.2,1) both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+@keyframes slidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.slidein{animation:slidein .4s ease both}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.shake{animation:shake .45s ease both}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-4px)}}
+.bob{animation:bob 2.4s ease-in-out infinite}
+.lift{transition:transform .2s ease,box-shadow .2s ease}
+.lift:hover{transform:translateY(-2px);box-shadow:0 16px 30px -18px rgba(21,17,10,.5)}
+@media (prefers-reduced-motion: reduce){.rise,.pop,.slidein,.spin,.shake,.bob{animation:none !important}.lift:hover{transform:none}}
+</style>
+</helmet>
+<div style="font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif; color: #15110A; background: #F8F4E6; min-height: 100vh;">
+
+<header class="rise" style="max-width: 1240px; margin: 0 auto; padding: 18px 24px 0; position: relative; z-index: 10;">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 8px 8px 8px 18px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 28px;">
+    <a href="Main.dc.html" aria-label="Sisonke home" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+      <svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg>
+      <span style="font-size: 21px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span>
+    </a>
+    <nav aria-label="App" style="display: flex; flex-wrap: wrap; gap: 4px;">
+      <a href="Dashboard.dc.html" aria-current="page" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; background: #EFEADA; font-size: 15px; font-weight: 700; text-decoration: none;">My escrows</a>
+      <a href="Create.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 15px; font-weight: 600; text-decoration: none;">New escrow</a>
+      <a href="Rules.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 15px; font-weight: 600; text-decoration: none;">Rules</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+      <a href="Lookup.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid #E6DFCB; background: #F8F4E6; color: #15110A; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="#15110A" stroke-width="2"></circle><path d="M14 14l4 4" stroke="#15110A" stroke-width="2" stroke-linecap="round"></path></svg>Find an escrow</a>
+      <span style="display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #EFEADA; font-size: 13px; font-weight: 600;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #5A2DE0;"></span>Testnet</span>
+      <sc-if value="{{isGuest}}" hint-placeholder-val="{{false}}">
+        <button type="button" class="lift" onClick="{{openModal}}" style="min-height: 40px; padding: 0 16px; border: 1.5px solid #15110A; border-radius: 999px; background: #D2F54B; color: #15110A; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Connect wallet</button>
+      </sc-if>
+      <sc-if value="{{notGuest}}" hint-placeholder-val="{{true}}">
+        <div style="position: relative;">
+          <button type="button" onClick="{{toggleMenu}}" aria-expanded="{{menuExpanded}}" aria-label="Wallet account, now {{meName}}" style="display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 14px; border: 0; border-radius: 999px; background: #15110A; color: #F8F4E6; font: inherit; font-size: 13px; cursor: pointer;">
+            <span style="width: 8px; height: 8px; border-radius: 999px; {{meDot}}"></span>
+            <span style="font-weight: 600;">{{meName}}</span>
+            <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace;">{{meAddr}}</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 5l4 4 4-4" stroke="#F8F4E6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+          <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+            <div class="slidein" aria-label="Wallet menu" style="position: absolute; right: 0; top: 48px; z-index: 30; width: 300px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 20px; box-shadow: 0 30px 60px -24px rgba(21, 17, 10, 0.45); padding: 6px; display: flex; flex-direction: column; gap: 2px;">
+              <p style="margin: 10px 12px 6px; font-size: 12px; font-weight: 700; color: #5A5446;">Switch account to try each side</p>
+              <sc-for list="{{accounts}}" as="ac" hint-placeholder-count="3">
+                <button type="button" onClick="{{ac.pick}}" aria-pressed="{{ac.pressed}}" style="width: 100%; min-height: 54px; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 0; border-radius: 14px; text-align: left; font: inherit; color: #15110A; cursor: pointer; background: {{ac.bg}};">
+                  <span style="flex: 0 0 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-family: 'Anton', 'Impact', sans-serif; font-size: 15px; {{ac.avatar}}">{{ac.initial}}</span>
+                  <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 700;">{{ac.name}}</span><span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A5446;">{{ac.addr}}</span></span>
+                  <sc-if value="{{ac.current}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="#15110A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                </button>
+              </sc-for>
+              <div style="margin: 6px 6px 2px; padding: 10px 8px 6px; border-top: 1px solid #EFEADA; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: #5A5446;">Test the payer’s wallet</span>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                  <sc-for list="{{scenarios}}" as="sc" hint-placeholder-count="3">
+                    <button type="button" aria-pressed="{{sc.pressed}}" onClick="{{sc.pick}}" style="min-height: 36px; padding: 0 12px; border: 1.5px solid; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; {{sc.style}}">{{sc.label}}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <button type="button" onClick="{{disconnect}}" style="margin: 2px; min-height: 46px; padding: 0 12px; border: 0; border-top: 1px solid #EFEADA; background: transparent; text-align: left; font: inherit; font-size: 14px; font-weight: 700; color: #B5321A; cursor: pointer;">Disconnect</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</header>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 96px; display: flex; flex-direction: column; gap: 24px;">
+  <nav class="rise" aria-label="Breadcrumb" style="font-size: 14px; font-weight: 600; color: #5A5446; display: flex; gap: 8px; flex-wrap: wrap; animation-delay: 40ms;">
+    <a href="Dashboard.dc.html" style="color: #5A5446;">My escrows</a><span aria-hidden="true">/</span><span style="color: #15110A;">Escrow {{escrowId}}</span>
+  </nav>
+
+  <div class="rise" style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 32px; animation-delay: 80ms;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+        <h1 style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: clamp(40px, 4.6vw, 64px); line-height: 1; text-transform: uppercase;">Escrow {{escrowId}}</h1>
+        <sc-for list="{{chipList}}" as="c" hint-placeholder-count="1">
+          <span class="pop" style="display: inline-flex; align-items: center; min-height: 36px; padding: 0 16px; border-radius: 999px; font-size: 15px; font-weight: 700; {{c.style}}">{{c.label}}</span>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; line-height: 1.2;">Logo for Megan’s café</p>
+    </div>
+    <button type="button" class="lift" onClick="{{copyLink}}" style="min-height: 46px; padding: 0 20px; border: 1.5px solid #15110A; border-radius: 999px; background: #FFFFFF; color: #15110A; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">{{linkLabel}}</button>
+  </div>
+
+  <section class="rise" aria-label="Where the money is" style="padding: 28px clamp(14px, 3vw, 32px) 26px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 28px; display: flex; flex-direction: column; gap: 18px; animation-delay: 120ms;">
+    <div aria-hidden="true" style="position: relative; height: 56px;">
+      <span style="position: absolute; left: 16.66%; right: 16.66%; top: 27px; height: 2px; background-image: repeating-linear-gradient(90deg, #15110A 0 8px, transparent 8px 16px);"></span>
+      <span style="position: absolute; left: 16.66%; top: 22px; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; background: #F8F4E6; border: 2px solid #15110A;"></span>
+      <span style="position: absolute; left: 50%; top: 22px; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; background: #F8F4E6; border: 2px solid #15110A;"></span>
+      <span style="position: absolute; left: 83.33%; top: 22px; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; background: #F8F4E6; border: 2px solid #15110A;"></span>
+      <span class="bob" style="position: absolute; top: 4px; width: 48px; height: 48px; border-radius: 999px; background: #D2F54B; border: 2px solid #15110A; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 22px -10px rgba(21, 17, 10, 0.6); transform: translateX(-50%); transition: left 1.2s cubic-bezier(.65,0,.35,1); left: {{coinLeft}};"><svg width="26" height="26" viewBox="0 0 34 34"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.6"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 6px; border-radius: 18px; transition: background-color .5s ease; {{payerCell}}">
+        <span style="font-size: 13px; font-weight: 600; color: #5A5446;">Payer</span>
+        <span style="font-size: 18px; font-weight: 700;">Megan</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A5446;">GCX4…7QPA</span>
+        <sc-if value="{{isPayer}}" hint-placeholder-val="{{true}}"><span class="pop" style="margin-top: 4px; padding: 2px 10px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 12px; font-weight: 700;">You</span></sc-if>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 6px; border-radius: 18px; transition: background-color .5s ease; {{contractCell}}">
+        <span style="font-size: 13px; font-weight: 600; color: #5A5446;">Contract holds</span>
+        <span style="font-family: 'Anton', 'Impact', sans-serif; font-size: clamp(24px, 3.2vw, 40px); line-height: 1; font-variant-numeric: tabular-nums;">{{locked}}</span>
+        <span style="font-size: 12px; font-weight: 600; color: #5A5446;">{{caption}}</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 6px; border-radius: 18px; transition: background-color .5s ease; {{recipientCell}}">
+        <span style="font-size: 13px; font-weight: 600; color: #5A5446;">Recipient</span>
+        <span style="font-size: 18px; font-weight: 700;">Kemi</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A5446;">GBQ7…K2LD</span>
+        <sc-if value="{{isRecipient}}" hint-placeholder-val="{{false}}"><span class="pop" style="margin-top: 4px; padding: 2px 10px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-size: 12px; font-weight: 700;">You</span></sc-if>
+      </div>
+    </div>
+    <p aria-live="polite" style="margin: 0; padding-top: 16px; border-top: 1px solid #EFEADA; font-size: 15px; line-height: 1.55; color: #5A5446; text-align: center;">{{statusSentence}}</p>
+  </section>
+
+  <div style="display: flex; flex-direction: row-reverse; flex-wrap: wrap; align-items: flex-start; gap: 24px;">
+
+    <aside class="rise" aria-label="Actions" style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 14px; animation-delay: 160ms;">
+      <div style="padding: 26px; background: #FFFFFF; border: 1.5px solid #15110A; border-radius: 26px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 24px 50px -36px rgba(21, 17, 10, 0.6);">
+
+        <sc-if value="{{showGuest}}" hint-placeholder-val="{{false}}">
+          <div class="slidein" style="display: flex; flex-direction: column; gap: 16px;">
+            <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #EFEADA; font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="#15110A" stroke-width="1.8"></path><circle cx="10" cy="10" r="2.5" stroke="#15110A" stroke-width="1.8"></circle></svg>View only</span>
+            <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; line-height: 1;">Connect to act</h2>
+            <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #5A5446;">Anyone with this link can watch the escrow. To deposit, release or refund, connect the wallet that’s part of it. The contract will recognise it.</p>
+            <button type="button" class="lift" onClick="{{openModal}}" style="min-height: 58px; width: 100%; border: 1.5px solid #15110A; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 21px; text-transform: uppercase; cursor: pointer;">Connect wallet</button>
+            <p style="margin: 0; font-size: 13px; color: #5A5446;">New to Stellar? <a href="Setup.dc.html" style="font-weight: 700; text-underline-offset: 4px;">Set up in four steps</a></p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{showError}}" hint-placeholder-val="{{false}}">
+          <div class="shake" role="alert" style="display: flex; flex-direction: column; gap: 14px;">
+            <span style="align-self: flex-start; width: 52px; height: 52px; border-radius: 999px; background: #FCEDE8; border: 1.5px solid #B5321A; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 7v6" stroke="#B5321A" stroke-width="2.4" stroke-linecap="round"></path><circle cx="12" cy="17" r="1.4" fill="#B5321A"></circle></svg></span>
+            <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 32px; line-height: 1.05;">{{errTitle}}</h2>
+            <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #5A5446;">{{errBody}}</p>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;">
+              <sc-if value="{{hasFix}}" hint-placeholder-val="{{false}}"><a href="Setup.dc.html" class="lift" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 999px; border: 1.5px solid #15110A; background: #D2F54B; color: #15110A; font-size: 15px; font-weight: 700; text-decoration: none;">{{fixLabel}}</a></sc-if>
+              <button type="button" onClick="{{clearError}}" style="min-height: 48px; padding: 0 20px; border: 1.5px solid #15110A; border-radius: 999px; background: transparent; color: #15110A; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">Try again</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{showActions}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; line-height: 1;">{{heading}}</h2>
+              <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #5A5446;">{{intro}}</p>
+            </div>
+            <sc-if value="{{hasWarn}}" hint-placeholder-val="{{false}}">
+              <div class="slidein" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: #EFEADA; border-radius: 16px; font-size: 14px; line-height: 1.5;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex: 0 0 18px; margin-top: 1px;"><path d="M12 3l10 18H2z" stroke="#15110A" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 10v5" stroke="#15110A" stroke-width="1.8" stroke-linecap="round"></path><circle cx="12" cy="18" r="1" fill="#15110A"></circle></svg>
+                <span>{{warnText}} <a href="Setup.dc.html" style="font-weight: 700; color: #5A2DE0; text-underline-offset: 3px;">Fix it in setup</a></span>
+              </div>
+            </sc-if>
+            <sc-for list="{{allowed}}" as="a" hint-placeholder-count="1">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="lift" onClick="{{a.run}}" style="min-height: 58px; width: 100%; border: 1.5px solid #15110A; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 21px; text-transform: uppercase; letter-spacing: 0.01em; cursor: pointer;">{{a.label}}</button>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5A5446;">{{a.desc}}</p>
+              </div>
+            </sc-for>
+            <sc-if value="{{isClosed}}" hint-placeholder-val="{{false}}">
+              <button type="button" class="lift" onClick="{{newEscrow}}" style="min-height: 50px; width: 100%; border: 1.5px solid #15110A; border-radius: 999px; background: transparent; color: #15110A; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">Start another escrow</button>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{showTx}}" hint-placeholder-val="{{false}}">
+          <div class="slidein" style="display: flex; flex-direction: column; gap: 16px;">
+            <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; line-height: 1;">{{txTitle}}</h2>
+            <sc-if value="{{awaitingSign}}" hint-placeholder-val="{{false}}">
+              <div class="pop" style="padding: 18px; background: #15110A; color: #F8F4E6; border-radius: 22px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="flex: 0 0 38px; height: 38px; border-radius: 12px; background: #D2F54B; color: #15110A; display: flex; align-items: center; justify-content: center; font-family: 'Anton', 'Impact', sans-serif; font-size: 18px;">{{walletInitial}}</span>
+                  <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; color: #C9C1AD;">{{walletName}} is asking you to sign</span><span style="font-size: 16px; font-weight: 700;">{{txTitle}}</span></div>
+                </div>
+                <dl style="margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 13px;">
+                  <dt style="color: #C9C1AD;">Contract</dt><dd style="margin: 0; font-family: 'Geist Mono', ui-monospace, Menlo, monospace;">CA3S…NK2E</dd>
+                  <dt style="color: #C9C1AD;">From</dt><dd style="margin: 0; font-family: 'Geist Mono', ui-monospace, Menlo, monospace;">{{meAddr}}</dd>
+                  <dt style="color: #C9C1AD;">Network</dt><dd style="margin: 0;">Stellar Testnet</dd>
+                </dl>
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" onClick="{{approve}}" style="flex: 1 1 auto; min-height: 48px; border: 0; border-radius: 999px; background: #D2F54B; color: #15110A; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">Approve</button>
+                  <button type="button" onClick="{{reject}}" style="flex: 1 1 auto; min-height: 48px; border: 1.5px solid #6B6252; border-radius: 999px; background: transparent; color: #F8F4E6; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">Reject</button>
+                </div>
+              </div>
+            </sc-if>
+            <ol aria-live="polite" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px;">
+              <sc-for list="{{txSteps}}" as="t" hint-placeholder-count="3">
+                <li style="display: flex; gap: 14px; align-items: flex-start;">
+                  <span style="flex: 0 0 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
+                    <sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><svg class="pop" width="26" height="26" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13" fill="#D2F54B" stroke="#15110A" stroke-width="1.5"></circle><path d="M8.5 14.5l3.5 3.5 7.5-8" stroke="#15110A" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                    <sc-if value="{{t.active}}" hint-placeholder-val="{{true}}"><svg class="spin" width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#EFEADA" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg></sc-if>
+                    <sc-if value="{{t.pending}}" hint-placeholder-val="{{false}}"><span style="width: 20px; height: 20px; border-radius: 999px; border: 1.5px solid #DDD6C2;"></span></sc-if>
+                  </span>
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 15px; font-weight: 700; {{t.labelStyle}}">{{t.label}}</span>
+                    <span style="font-size: 13px; color: #5A5446;">{{t.sub}}</span>
+                  </div>
+                </li>
+              </sc-for>
+            </ol>
+            <sc-if value="{{txDone}}" hint-placeholder-val="{{false}}">
+              <div class="slidein" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;">
+                <button type="button" onClick="{{closeTx}}" style="min-height: 46px; padding: 0 24px; border: 0; border-radius: 999px; background: #15110A; color: #F8F4E6; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">Done</button>
+                <a href="https://stellar.expert/explorer/testnet" style="font-size: 14px; font-weight: 700; color: #5A2DE0;">Open on Stellar Expert</a>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+
+      <sc-for list="{{toastList}}" as="tt" hint-placeholder-count="0">
+        <div role="alert" class="shake" style="padding: 16px 18px; background: #FCEDE8; border: 1.5px solid #B5321A; border-radius: 18px; display: flex; gap: 12px; align-items: flex-start;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex: 0 0 20px; margin-top: 1px;"><circle cx="12" cy="12" r="10" stroke="#B5321A" stroke-width="2"></circle><path d="M6.5 17.5l11-11" stroke="#B5321A" stroke-width="2" stroke-linecap="round"></path></svg>
+          <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #B5321A;">Rejected by the contract</p>
+            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #15110A;">{{tt.body}}</p>
+            <button type="button" onClick="{{closeToast}}" style="align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: transparent; color: #15110A; font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; cursor: pointer;">Dismiss</button>
+          </div>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{hasBlocked}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 20px 22px; background: #EFEADA; border-radius: 22px; display: flex; flex-direction: column;">
+          <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 700;">Not yours to do</h3>
+          <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column;">
+            <sc-for list="{{blocked}}" as="b" hint-placeholder-count="3">
+              <li style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 0; border-top: 1px solid #DDD6C2;">
+                <div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 2px;">
+                  <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700;"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2" stroke="#15110A" stroke-width="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="#15110A" stroke-width="2"></path></svg>{{b.label}}</span>
+                  <span style="font-size: 13px; line-height: 1.45; color: #5A5446;">{{b.why}}</span>
+                </div>
+                <button type="button" onClick="{{b.tryIt}}" style="min-height: 44px; padding: 0 14px; border: 1.5px dashed #15110A; border-radius: 999px; background: transparent; color: #15110A; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">Try anyway</button>
+              </li>
+            </sc-for>
+          </ul>
+          <p style="margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: #5A5446;">Try anyway sends it on Testnet so you can watch the contract say no.</p>
+        </div>
+      </sc-if>
+    </aside>
+
+    <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+      <section class="rise" aria-label="Progress" style="padding: 24px 26px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; display: flex; flex-direction: column; gap: 12px; animation-delay: 200ms;">
+        <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));">
+          <sc-for list="{{steps}}" as="st" hint-placeholder-count="3">
+            <li style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px; padding-right: 10px;">
+                <span style="flex: 0 0 32px; height: 32px; border-radius: 999px; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; transition: background-color .4s ease, color .4s ease; {{st.mark}}">
+                  <sc-if value="{{st.done}}" hint-placeholder-val="{{true}}"><svg class="pop" width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                  <sc-if value="{{st.todo}}" hint-placeholder-val="{{false}}">{{st.num}}</sc-if>
+                </span>
+                <span style="flex: 1 1 auto; height: 4px; border-radius: 999px; background: #EFEADA; overflow: hidden; {{st.barWrap}}"><span style="display: block; height: 100%; background: #15110A; transition: width .8s cubic-bezier(.2,.7,.2,1); width: {{st.fill}};"></span></span>
+              </div>
+              <span style="font-size: 15px; font-weight: 700; {{st.text}}">{{st.label}}</span>
+            </li>
+          </sc-for>
+        </ol>
+        <p style="margin: 0; font-size: 13px; color: #5A5446;">Status changes only after Stellar confirms the transaction.</p>
+      </section>
+
+      <section class="rise" aria-labelledby="details-h" style="padding: 24px 26px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; display: flex; flex-direction: column; gap: 16px; animation-delay: 240ms;">
+        <h2 id="details-h" style="margin: 0; font-size: 16px; font-weight: 700;">Details</h2>
+        <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px 28px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><dt style="font-size: 13px; color: #5A5446;">Escrow ID</dt><dd style="margin: 0; font-size: 15px; font-weight: 600;">{{escrowId}}</dd></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><dt style="font-size: 13px; color: #5A5446;">Amount</dt><dd style="margin: 0; font-size: 15px; font-weight: 600;">250.00 USDC</dd></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><dt style="font-size: 13px; color: #5A5446;">Deadline</dt><dd style="margin: 0; font-size: 15px; font-weight: 600;">7 Nov 2026</dd></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><dt style="font-size: 13px; color: #5A5446;">Network</dt><dd style="margin: 0; font-size: 15px; font-weight: 600;">Stellar Testnet</dd></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><dt style="font-size: 13px; color: #5A5446;">Token</dt><dd style="margin: 0; font-size: 15px; font-weight: 600;">USDC issued by Circle</dd></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><dt style="font-size: 13px; color: #5A5446;">Contract</dt><dd style="margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px;"><span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px;">CA3S…NK2E</span><button type="button" onClick="{{copyContract}}" style="min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: #5A2DE0; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">{{contractLabel}}</button><a href="https://stellar.expert/explorer/testnet" style="font-size: 13px; font-weight: 700; color: #5A2DE0;">Explorer</a></dd></div>
+        </dl>
+      </section>
+
+      <section class="rise" aria-labelledby="activity-h" style="padding: 24px 26px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; display: flex; flex-direction: column; gap: 4px; animation-delay: 280ms;">
+        <h2 id="activity-h" style="margin: 0 0 8px; font-size: 16px; font-weight: 700;">Activity</h2>
+        <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column;">
+          <sc-for list="{{events}}" as="e" hint-placeholder-count="2">
+            <li class="slidein" style="display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid #EFEADA;">
+              <span style="flex: 0 0 12px; height: 12px; margin-top: 5px; border-radius: 999px; {{e.dot}}"></span>
+              <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px;">
+                <div style="display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 15px; font-weight: 700;">{{e.title}}</span><span style="font-size: 13px; color: #5A5446;">{{e.by}}, {{e.when}}</span></div>
+                <a href="https://stellar.expert/explorer/testnet" aria-label="Open transaction {{e.hash}} on Stellar Expert" style="align-self: flex-start; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5A2DE0;">{{e.hash}}</a>
+              </div>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+    </div>
+  </div>
+</main>
+
+<sc-if value="{{modalOpen}}" hint-placeholder-val="{{false}}">
+  <div style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(21, 17, 10, 0.55);">
+    <div role="dialog" aria-modal="true" aria-labelledby="connect-title" class="pop" style="width: min(440px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 26px; background: #F8F4E6; border-radius: 28px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6);">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <h2 id="connect-title" style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; line-height: 1;">Connect a wallet</h2>
+          <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #5A5446;">Sisonke never sees your keys. You approve every step in your wallet.</p>
+        </div>
+        <button type="button" onClick="{{closeModal}}" aria-label="Close" style="flex: 0 0 44px; height: 44px; border-radius: 999px; border: 1.5px solid #DDD6C2; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="#15110A" stroke-width="2.2" stroke-linecap="round"></path></svg></button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{wallets}}" as="w" hint-placeholder-count="5">
+          <button type="button" class="lift" onClick="{{w.pick}}" disabled="{{w.disabled}}" style="min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid #E6DFCB; border-radius: 16px; background: #FFFFFF; color: #15110A; font: inherit; font-size: 16px; font-weight: 700; text-align: left; cursor: pointer;">
+            <span style="flex: 0 0 36px; height: 36px; border-radius: 10px; background: #15110A; color: #D2F54B; display: flex; align-items: center; justify-content: center; font-family: 'Anton', 'Impact', sans-serif; font-size: 17px;">{{w.initial}}</span>
+            <span style="flex: 1 1 auto;">{{w.name}}</span>
+            <sc-if value="{{w.busy}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #5A5446;"><svg class="spin" width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#E6DFCB" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg>Opening</span></sc-if>
+            <sc-if value="{{w.notBusy}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="#15110A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+          </button>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 14px; color: #5A5446;">New to Stellar? <a href="Setup.dc.html" style="font-weight: 700; text-underline-offset: 4px;">Set up in four steps</a></p>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startRole":{"editor":"enum","options":["payer","recipient","other","guest"],"default":"payer"},"startStatus":{"editor":"enum","options":["created","funded","released","refunded"],"default":"created"},"walletState":{"editor":"enum","options":["ready","low","notrust"],"default":"ready"},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    const p = this.props || {};
+    this.timers = [];
+    this.toastKey = 0;
+    this.state = this.fresh(p.startStatus || 'created', p.startRole || 'payer', 42, p.walletState || 'ready');
+  }
+  fresh(status, role, no, scenario) {
+    return { status: status, role: role, lastRole: role === 'guest' ? 'recipient' : role, escrowNo: no, scenario: scenario, walletName: 'Freighter', menuOpen: false, modalOpen: false, connecting: null, tx: null, error: null, toast: null, copied: '', events: this.seed(status) };
+  }
+  componentDidUpdate(prev) {
+    if (!prev) return;
+    const p = this.props;
+    if (prev.startStatus !== p.startStatus || prev.startRole !== p.startRole || prev.walletState !== p.walletState) {
+      this.setState(this.fresh(p.startStatus || 'created', p.startRole || 'payer', 42, p.walletState || 'ready'));
+    }
+  }
+  componentWillUnmount() {
+    this.timers.forEach((t) => clearTimeout(t));
+  }
+  later(fn, ms) {
+    this.timers.push(setTimeout(fn, ms));
+  }
+  makeHash() {
+    const h = '0123456789abcdef';
+    let s = '';
+    for (let i = 0; i < 8; i++) s += h[Math.floor(Math.random() * 16)];
+    return s.slice(0, 4) + '…' + s.slice(4);
+  }
+  now() {
+    return new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  ev(kind, when, hash) {
+    const map = {
+      created: { title: 'Escrow created', by: 'Megan signed', dot: 'border: 2px solid #15110A; background: #FFFFFF;' },
+      funded: { title: '250.00 USDC locked in', by: 'Megan signed', dot: 'border: 2px solid #15110A; background: #D2F54B;' },
+      released: { title: 'Released to Kemi', by: 'Megan signed', dot: 'border: 2px solid #15110A; background: #15110A;' },
+      refunded: { title: 'Refunded to Megan', by: 'Kemi signed', dot: 'border: 2px solid #15110A; background: #EFEADA;' }
+    };
+    return Object.assign({ kind: kind, when: when, hash: hash }, map[kind]);
+  }
+  seed(status) {
+    const list = [this.ev('created', '24 Oct 2026, 10:14', '7c1e…a90b')];
+    if (status !== 'created') list.push(this.ev('funded', '24 Oct 2026, 10:16', 'd42b…11fe'));
+    if (status === 'released') list.push(this.ev('released', '27 Oct 2026, 15:02', 'a90f…3c7d'));
+    if (status === 'refunded') list.push(this.ev('refunded', '27 Oct 2026, 15:02', 'e5b8…07aa'));
+    return list;
+  }
+  defs() {
+    return [
+      { id: 'deposit', verb: 'deposit', label: 'Deposit 250.00 USDC', who: 'payer', from: 'created', to: 'funded', desc: 'Moves the USDC from your wallet into the contract. Kemi can then see it’s locked.' },
+      { id: 'release', verb: 'release', label: 'Release to Kemi', who: 'payer', from: 'funded', to: 'released', desc: 'Sends all 250.00 USDC to Kemi. This can’t be undone.' },
+      { id: 'refund', verb: 'refund', label: 'Refund to Megan', who: 'recipient', from: 'funded', to: 'refunded', desc: 'Sends all 250.00 USDC back to Megan. This can’t be undone.' },
+      { id: 'reclaim', verb: 'take the money back', label: 'Reclaim after the deadline', who: 'payer', from: 'funded', to: 'refunded', timeLocked: true, desc: '' }
+    ];
+  }
+  check(d, role, status, deadline) {
+    const closedNow = status === 'released' || status === 'refunded';
+    const whoName = d.who === 'payer' ? 'payer' : 'recipient';
+    if (closedNow) return { ok: false, why: 'This escrow is closed.', reject: 'This escrow is already ' + status + '. Nothing pays out twice.' };
+    if (role !== d.who) return { ok: false, why: role === 'other' ? 'You’re not part of this escrow.' : 'Only the ' + whoName + ' can do this.', reject: 'Not authorized. Only the ' + whoName + ' can ' + d.verb + ' on this escrow.' };
+    if (status !== d.from) {
+      if (d.id === 'deposit') return { ok: false, why: 'Already deposited.', reject: 'This escrow is already funded. It can’t be funded twice.' };
+      return { ok: false, why: 'Deposit first. Nothing is locked yet.', reject: 'Nothing is locked yet, so there’s nothing to ' + d.verb + '.' };
+    }
+    if (d.timeLocked) return { ok: false, why: 'Opens on ' + deadline + ' if still locked.', reject: 'The deadline hasn’t passed. The payer can’t take the money back before ' + deadline + '.' };
+    return { ok: true };
+  }
+  run(d) {
+    if (this.state.tx) return;
+    this.setState({ tx: { id: d.id, label: d.label, to: d.to, step: 1, hash: this.makeHash() }, toast: null, error: null, menuOpen: false });
+  }
+  approve() {
+    const tx = this.state.tx;
+    if (!tx || tx.step !== 1) return;
+    this.setState({ tx: Object.assign({}, tx, { step: 2 }) });
+    this.later(() => {
+      const t = this.state.tx;
+      if (!t) return;
+      const sc = this.state.scenario;
+      if (t.id === 'deposit' && sc === 'low') {
+        this.setState({ tx: null, error: { title: 'Not enough USDC', body: 'This deposit needs 250.00 USDC and your wallet has 120.00. Top up, then try again. Nothing was sent.', fix: 'Get test USDC' } });
+        return;
+      }
+      if (t.id === 'deposit' && sc === 'notrust') {
+        this.setState({ tx: null, error: { title: 'Your wallet can’t hold USDC yet', body: 'Add the USDC trustline first. It takes one signature. Nothing was sent.', fix: 'Add the trustline' } });
+        return;
+      }
+      this.setState({ tx: Object.assign({}, t, { step: 3 }), status: t.to, events: this.state.events.concat([this.ev(t.to, this.now(), t.hash)]) });
+    }, 1400);
+  }
+  reject() {
+    this.setState({ tx: null, error: { title: 'You rejected it in your wallet', body: 'Nothing was sent and nothing changed. Try again whenever you’re ready.', fix: '' } });
+  }
+  copy(kind, text) {
+    try { if (navigator.clipboard) navigator.clipboard.writeText(text); } catch (e) {}
+    this.setState({ copied: kind });
+    this.later(() => this.setState({ copied: '' }), 1600);
+  }
+  renderVals() {
+    const s = this.state;
+    const DEADLINE = '7 Nov 2026';
+    const closed = s.status === 'released' || s.status === 'refunded';
+    const guest = s.role === 'guest';
+    const roles = {
+      payer: { name: 'Megan', addr: 'GCX4…7QPA', initial: 'M', dot: 'background: #D2F54B;', avatar: 'background: #D2F54B; color: #15110A;' },
+      recipient: { name: 'Kemi', addr: 'GBQ7…K2LD', initial: 'K', dot: 'background: #5A2DE0;', avatar: 'background: #5A2DE0; color: #FFFFFF;' },
+      other: { name: 'Someone else', addr: 'GDZ9…4HWE', initial: '?', dot: 'background: #8C8370;', avatar: 'background: #EFEADA; color: #15110A;' },
+      guest: { name: 'Not connected', addr: '', initial: '', dot: '', avatar: '' }
+    };
+    const me = roles[s.role] || roles.payer;
+    const roleLabel = { payer: 'Megan (payer)', recipient: 'Kemi (recipient)', other: 'Someone else' };
+    const accounts = ['payer', 'recipient', 'other'].map((k) => ({
+      name: roleLabel[k], addr: roles[k].addr, initial: roles[k].initial, avatar: roles[k].avatar,
+      pressed: s.role === k ? 'true' : 'false', current: s.role === k, bg: s.role === k ? '#F8F4E6' : 'transparent',
+      pick: () => this.setState({ role: k, lastRole: k, menuOpen: false, toast: null, error: null })
+    }));
+    const scenarios = [['ready', 'Ready'], ['low', 'Low USDC'], ['notrust', 'No trustline']].map((x) => ({
+      label: x[1], pressed: s.scenario === x[0] ? 'true' : 'false',
+      style: s.scenario === x[0] ? 'background: #15110A; color: #F8F4E6; border-color: #15110A;' : 'background: transparent; color: #15110A; border-color: #DDD6C2;',
+      pick: () => this.setState({ scenario: x[0], error: null })
+    }));
+    const wallets = ['Freighter', 'xBull', 'Lobstr', 'Albedo', 'Hana'].map((n) => ({
+      name: n, initial: n.charAt(0).toUpperCase(), busy: s.connecting === n, notBusy: s.connecting !== n, disabled: !!s.connecting,
+      pick: () => {
+        if (this.state.connecting) return;
+        this.setState({ connecting: n });
+        this.later(() => this.setState({ role: this.state.lastRole || 'recipient', walletName: n, modalOpen: false, connecting: null }), 1100);
+      }
+    }));
+    const info = {
+      created: { label: 'Awaiting deposit', chip: 'background: transparent; color: #15110A; border: 1.5px dashed #15110A;', sentence: 'Waiting for Megan to deposit 250.00 USDC. Nothing is locked yet.', locked: '0.00', caption: 'Nothing locked yet', coin: '16.66%' },
+      funded: { label: 'Funded', chip: 'background: #D2F54B; color: #15110A; border: 1.5px solid #15110A;', sentence: '250.00 USDC is locked in the contract. It moves only when Megan releases it or Kemi refunds it.', locked: '250.00', caption: 'Locked until released or refunded', coin: '50%' },
+      released: { label: 'Released', chip: 'background: #15110A; color: #F8F4E6; border: 1.5px solid #15110A;', sentence: '250.00 USDC was paid to Kemi. This escrow is closed for good.', locked: '0.00', caption: 'Paid out to Kemi', coin: '83.33%' },
+      refunded: { label: 'Refunded', chip: 'background: #FFFFFF; color: #15110A; border: 1.5px solid #15110A;', sentence: '250.00 USDC went back to Megan. This escrow is closed for good.', locked: '0.00', caption: 'Returned to Megan', coin: '16.66%' }
+    }[s.status];
+    const idx = s.status === 'created' ? 0 : s.status === 'funded' ? 1 : 2;
+    const third = s.status === 'released' ? 'Released' : s.status === 'refunded' ? 'Refunded' : 'Released or refunded';
+    const steps = ['Created', 'Funded', third].map((label, i) => {
+      const done = i <= idx;
+      const current = i === idx;
+      let mark = 'background: transparent; border-color: #DDD6C2; color: #5A5446;';
+      if (done && current) mark = 'background: #D2F54B; border-color: #15110A; color: #15110A;';
+      else if (done) mark = 'background: #15110A; border-color: #15110A; color: #F8F4E6;';
+      return { label: label, num: String(i + 1), done: done, todo: !done, mark: mark, text: done ? 'color: #15110A;' : 'color: #5A5446;', fill: i < idx ? '100%' : '0%', barWrap: i === 2 ? 'visibility: hidden;' : '' };
+    });
+    const allowed = [];
+    const blocked = [];
+    if (!guest) {
+      this.defs().forEach((d) => {
+        const c = this.check(d, s.role, s.status, DEADLINE);
+        if (c.ok) allowed.push(Object.assign({}, d, { run: () => this.run(d) }));
+        else blocked.push(Object.assign({}, d, { why: c.why, tryIt: () => { this.toastKey += 1; this.setState({ toast: { body: c.reject + ' No money moved.', key: this.toastKey }, error: null }); } }));
+      });
+    }
+    let heading = '';
+    let intro = '';
+    if (closed) { heading = 'Nothing left to do'; intro = 'This escrow is closed. The contract won’t accept another release or refund.'; }
+    else if (allowed.length) {
+      heading = 'Your move';
+      if (s.role === 'payer' && s.status === 'created') intro = 'Deposit the USDC so Kemi can see it’s locked before she starts.';
+      else if (s.role === 'payer') intro = 'Release the money once you’re happy with the logo.';
+      else intro = 'If the deal falls through, send the money back to Megan.';
+    } else if (s.role === 'other') { heading = 'Just looking'; intro = 'Only Megan and Kemi can act on this escrow. The contract rejects anyone else’s signature.'; }
+    else { heading = 'Waiting on Megan'; intro = 'Nothing is locked yet. Don’t start work until the status says Funded.'; }
+    const depositable = s.role === 'payer' && s.status === 'created';
+    let warnText = '';
+    if (depositable && s.scenario === 'low') warnText = 'Heads up: your wallet has 120.00 USDC. This deposit needs 250.00.';
+    if (depositable && s.scenario === 'notrust') warnText = 'Heads up: your wallet can’t hold USDC yet. It needs a USDC trustline.';
+    const tx = s.tx;
+    const txSteps = tx ? [
+      { label: 'Approve in your wallet', sub: 'Check the details, then approve or reject.' },
+      { label: 'Sending to Stellar', sub: 'Usually takes a few seconds.' },
+      { label: 'Confirmed', sub: 'Status updated. Transaction ' + tx.hash + '.' }
+    ].map((x, i) => {
+      const n = i + 1;
+      const done = tx.step > n || (tx.step === 3 && n === 3);
+      const active = tx.step === n && n !== 3;
+      return Object.assign({}, x, { done: done, active: active, pending: !done && !active, labelStyle: !done && !active ? 'color: #8C8370;' : 'color: #15110A;' });
+    }) : [];
+    const err = s.error;
+    const hl = 'background: #F8F4E6;';
+    return {
+      escrowId: '#' + String(s.escrowNo).padStart(4, '0'),
+      isGuest: guest,
+      notGuest: !guest,
+      meName: me.name,
+      meAddr: me.addr || 'GCX4…7QPA',
+      meDot: me.dot,
+      menuOpen: s.menuOpen,
+      menuExpanded: s.menuOpen ? 'true' : 'false',
+      toggleMenu: () => this.setState({ menuOpen: !this.state.menuOpen }),
+      accounts: accounts,
+      scenarios: scenarios,
+      disconnect: () => this.setState({ role: 'guest', menuOpen: false, tx: null, error: null, toast: null }),
+      modalOpen: s.modalOpen,
+      openModal: () => this.setState({ modalOpen: true }),
+      closeModal: () => this.setState({ modalOpen: false, connecting: null }),
+      wallets: wallets,
+      walletName: s.walletName,
+      walletInitial: s.walletName.charAt(0).toUpperCase(),
+      chipList: [{ label: info.label, style: info.chip, key: s.status }],
+      statusSentence: info.sentence,
+      locked: info.locked,
+      caption: info.caption,
+      coinLeft: info.coin,
+      payerCell: (s.status === 'created' || s.status === 'refunded') ? hl : '',
+      contractCell: s.status === 'funded' ? 'background: #D2F54B;' : '',
+      recipientCell: s.status === 'released' ? hl : '',
+      steps: steps,
+      isPayer: s.role === 'payer',
+      isRecipient: s.role === 'recipient',
+      isClosed: closed,
+      heading: heading,
+      intro: intro,
+      hasWarn: !!warnText,
+      warnText: warnText,
+      allowed: allowed,
+      blocked: blocked,
+      hasBlocked: blocked.length > 0,
+      showGuest: guest,
+      showError: !guest && !!err,
+      errTitle: err ? err.title : '',
+      errBody: err ? err.body : '',
+      hasFix: !!(err && err.fix),
+      fixLabel: err ? err.fix : '',
+      clearError: () => this.setState({ error: null }),
+      showActions: !guest && !tx && !err,
+      showTx: !guest && !!tx,
+      awaitingSign: !!(tx && tx.step === 1),
+      approve: () => this.approve(),
+      reject: () => this.reject(),
+      txTitle: tx ? tx.label : '',
+      txSteps: txSteps,
+      txDone: !!(tx && tx.step === 3),
+      closeTx: () => this.setState({ tx: null }),
+      toastList: s.toast ? [s.toast] : [],
+      closeToast: () => this.setState({ toast: null }),
+      events: s.events,
+      newEscrow: () => {
+        const next = this.fresh('created', 'payer', this.state.escrowNo + 1, this.state.scenario);
+        next.events = [this.ev('created', this.now(), this.makeHash())];
+        this.setState(next);
+      },
+      linkLabel: s.copied === 'link' ? 'Link copied' : 'Copy link for Kemi',
+      copyLink: () => this.copy('link', 'Escrow ' + s.escrowNo),
+      contractLabel: s.copied === 'contract' ? 'Copied' : 'Copy',
+      copyContract: () => this.copy('contract', 'CA3S…NK2E')
+    };
+  }
+}
+</script>
+</body>
+</html>
