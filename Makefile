@@ -1,4 +1,4 @@
-.PHONY: build fixture test test-fast soak fmt lint check multisig-admin deploy upgrade-propose upgrade-execute upgrade-cancel upgrade-demo bindings e2e-setup e2e clean
+.PHONY: build fixture test test-fast soak fmt lint check multisig-admin deploy upgrade-propose upgrade-execute upgrade-cancel upgrade-demo bindings e2e-setup e2e web-dev web-check web-e2e clean
 
 FIXTURE_WASM = target/wasm32v1-none/release/sisonke_upgrade_fixture.wasm
 FIXTURE_COPY = contracts/sisonke-escrow/testdata/upgrade_fixture.wasm
@@ -66,6 +66,16 @@ e2e-setup:
 
 e2e:
 	cd scripts && node e2e.ts
+
+# Web app (web/README.md).
+web-dev:
+	cd web && pnpm install && pnpm dev
+
+web-check:
+	cd web && pnpm install --frozen-lockfile && pnpm check
+
+web-e2e:
+	cd web && pnpm e2e
 
 clean:
 	cargo clean

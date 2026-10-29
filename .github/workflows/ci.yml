@@ -33,3 +33,26 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: for f in *.sh; do bash -n "$f"; done
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      # Version from web/package.json "packageManager".
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      # Unit tests read ../contracts and ../deployments; no network access needed.
+      - run: pnpm test
+      - run: pnpm build
