@@ -15,7 +15,7 @@ export function SetupStep({
 }: {
   n: number;
   title: string;
-  /** "Up next", "Waiting on the step above", "Working…", "Done", "Waiting for Freighter…" */
+  /** "Up next", "Waiting on the step above", "Working…", "Done", "Waiting for your wallet…" */
   status: string;
   state: StepState;
   delay: number;

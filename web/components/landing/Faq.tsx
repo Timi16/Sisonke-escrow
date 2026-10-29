@@ -24,7 +24,7 @@ function faqs(notice: string) {
       a: "No. Once an escrow is Released, Refunded or Split it’s closed, and the contract rejects any second attempt.",
     },
     { q: "Is this real money?", a: "Not yet. Sisonke runs on Stellar Testnet with test USDC, so you can try every step for free." },
-    { q: "Which wallets can I use?", a: "Freighter, xBull, Lobstr, Albedo and Hana. You approve every step in your own wallet." },
+    { q: "Which wallets can I use?", a: "Varial (formerly Freighter), xBull, Lobstr, Albedo and Hana. You approve every step in your own wallet." },
   ];
 }
 

@@ -10,16 +10,21 @@ type KitClass = typeof Kit;
 
 /** The wallets offered, in order (WEB_PLAN §7). Ids match the kit's module productIds. */
 export const WALLETS = [
-  { id: "freighter", name: "Freighter", url: "https://freighter.app" },
-  { id: "xbull", name: "xBull", url: "https://xbull.app" },
-  { id: "lobstr", name: "Lobstr", url: "https://lobstr.co" },
-  { id: "albedo", name: "Albedo", url: "https://albedo.link" },
-  { id: "hana", name: "Hana", url: "https://hanawallet.io" },
+  // Freighter was renamed Varial; the kit still calls its module "freighter".
+  { id: "freighter", name: "Varial", note: "formerly Freighter", icon: "/wallets/varial.svg", url: "https://varialwallet.com" },
+  { id: "xbull", name: "xBull", icon: "/wallets/xbull.png", url: "https://xbull.app" },
+  { id: "lobstr", name: "Lobstr", icon: "/wallets/lobstr.png", url: "https://lobstr.co" },
+  { id: "albedo", name: "Albedo", icon: "/wallets/albedo.png", url: "https://albedo.link" },
+  { id: "hana", name: "Hana", icon: "/wallets/hana.png", url: "https://hanawallet.io" },
 ] as const;
 
 export interface WalletOption {
   id: string;
   name: string;
+  /** e.g. "formerly Freighter". */
+  note?: string;
+  /** Official logo, served from /public/wallets. */
+  icon: string;
   url: string;
   /** Null until the kit has checked. */
   available: boolean | null;
@@ -205,7 +210,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     () =>
       WALLETS.map((w) => {
         const s = supported?.find((x) => x.id === w.id);
-        return { id: w.id, name: w.name, url: s?.url && /^https:\/\//.test(s.url) ? s.url : w.url, available: supported ? !!s?.isAvailable : null };
+        return { id: w.id, name: w.name, note: "note" in w ? w.note : undefined, icon: w.icon, url: w.url, available: supported ? !!s?.isAvailable : null };
       }),
     [supported],
   );

@@ -146,7 +146,7 @@ export function Hero() {
           </a>
         </div>
         <p className="rise-lg m-0 text-center text-[13px] leading-[1.6] text-muted min-[720px]:text-left min-[720px]:text-sm" style={{ animationDelay: "320ms" }}>
-          Free on Stellar Testnet. Works with Freighter, xBull, Lobstr, Albedo and Hana.
+          Free on Stellar Testnet. Works with Varial (formerly Freighter), xBull, Lobstr, Albedo and Hana.
         </p>
       </div>
 

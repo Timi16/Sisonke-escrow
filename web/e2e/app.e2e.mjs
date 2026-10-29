@@ -85,7 +85,7 @@ async function connect(page, mobile = false) {
     await connectBtn.click();
   }
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: /Freighter/ }).click();
+  await dialog.getByRole("button", { name: /Varial/ }).click();
   await dialog.waitFor({ state: "detached" });
   if (!mobile) await page.getByRole("button", { name: /Wallet account/ }).waitFor();
 }
