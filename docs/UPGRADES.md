@@ -373,6 +373,16 @@ functions, which isn't worth 1 Testnet USDC. Never point the demo at an instance
 
 Each run adds a block above the marker below.
 
+**2026-10-29**: demo contract [`CDEA3U5B2M4TPOSUBFUKRICKAK5AF5SLIZCMJRESWHB3XSYXMYREZZJQ`](https://stellar.expert/explorer/testnet/contract/CDEA3U5B2M4TPOSUBFUKRICKAK5AF5SLIZCMJRESWHB3XSYXMYREZZJQ), admin [`GBPSNZCXM52MAACKJAGZE3UIE2Y7SZ5REH452AFPG2372HF52CQBQ42F`](https://stellar.expert/explorer/testnet/account/GBPSNZCXM52MAACKJAGZE3UIE2Y7SZ5REH452AFPG2372HF52CQBQ42F) (2-of-3), delay 60 s, v1 wasm `99693d7da2c0ebb52043e97ca8342590b296b5aa83f6d682d345c3d627a34aad`, fixture wasm `9313ce207634353c8370edf79a877b664c8674bf9432735bd55dae905f3f7706`, escrow #1: total_locked 10000000 → 10000000, contract USDC 10000000, version / storage 2 / 2.
+
+| Step | Signers | Expected | Result | Transaction |
+|---|---|---|---|---|
+| propose_upgrade, 1 signer | 1 of 3 | refused: signer weight below threshold | ⛔ Auth error (code 6) | [`6c8dc2b3…`](https://stellar.expert/explorer/testnet/tx/6c8dc2b37d16f612b92a57bed5eac3c822fbad082f42adc5f4506a07713167d3) |
+| propose_upgrade, 2 signers | 2 of 3 | ok, eta = now + 60 s | ✅ eta 1793236870 | [`0da40164…`](https://stellar.expert/explorer/testnet/tx/0da40164def3ad3e1f2f63072cb191f618e073e4b90948af7f889735ef07fa4a) |
+| upgrade before eta | 2 of 3 | refused: UpgradeTooEarly (204) | ⛔ Error #204 UpgradeTooEarly | [`7e0e91cb…`](https://stellar.expert/explorer/testnet/tx/7e0e91cb264dc429f91f30b9b6f01dbd0ac5ee28cba2377af7606bb6cebbd13e) |
+| upgrade(wrong hash) after eta | 2 of 3 | refused: UpgradeHashMismatch (206) | ⛔ Error #206 UpgradeHashMismatch | [`ac8b4043…`](https://stellar.expert/explorer/testnet/tx/ac8b4043b0d3d106c6d2d943813d862385689d3b4916feb6186ddb4d6dc46ff7) |
+| upgrade at eta (+ migrate) | 2 of 3 | ok, version 2, storage 2 | ✅ upgraded | [`7b0c608b…`](https://stellar.expert/explorer/testnet/tx/7b0c608b09dfea0eb3ca4039a35c7f421fcac0a0e5e5483669ebdb28b1fc868c) |
+
 <!-- upgrade-demo rows -->
 
 ### Earlier run: instant-upgrade build (before the timelock and multisig)
