@@ -186,7 +186,7 @@ failure reverts the whole transaction.
 
 | Function | Signer | Allowed when | Effect | Errors, in check order |
 |---|---|---|---|---|
-| `create(payer, recipient, arbiter: Option<Address>, amount, deadline, title, terms_hash: Option<BytesN<32>>) -> u64` | payer | not paused; inputs valid (below) | New escrow in `Created`; indexed for payer, recipient, arbiter | 141, 140, 120, 121, 123, 122, 124, 125, 126, 128, 143 |
+| `create(payer, recipient, arbiter: Option<Address>, amount, deadline, title, terms_hash: Option<BytesN<32>>) -> u64` | payer | not paused; inputs valid (below) | New escrow in `Created`; indexed for the payer only (recipient and arbiter are indexed when it is funded) | 141, 140, 120, 121, 123, 122, 124, 125, 126, 128, 143 |
 | `fund(id)` | payer | `Created`, `now < deadline`, not paused | payer → contract `amount`; balance must grow by exactly `amount`; `Funded` | 141, 100, 140, 101, 102, 143, 107 |
 | `create_and_fund(same as create) -> u64` | payer | as `create` | Both in one transaction, one signature | as `create`, then 143 (`TotalLocked`), 107 |
 | `release(id)` | payer | `Funded` or `Disputed`, any time | contract → recipient `amount`; `Released` | 141, 100, 101 |
