@@ -7,6 +7,7 @@
 //! - `validation`: create input checks, unknown ids, batch limits
 //! - `accounting`: `TotalLocked`, isolation, donations, atomicity
 //! - `adversary`: attacker-minded tests; `// VULN:` marks a live vulnerability
+//! - `adversary_timelock`: round 2, the timelock, handover and fund-time index
 //! - `index`: the paged party index and batch reads
 //! - `events`: exact event shapes
 //! - `admin`: pause and the two-step admin handover
@@ -25,6 +26,7 @@ extern crate std;
 mod accounting;
 mod admin;
 mod adversary;
+mod adversary_timelock;
 mod auth;
 mod dispute;
 mod duplicates;
