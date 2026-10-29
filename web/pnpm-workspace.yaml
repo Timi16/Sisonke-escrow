@@ -1,0 +1,9 @@
+# Install scripts are denied unless listed true. None of these are needed for
+# the browser bundle (native speedups and wallet-connect telemetry).
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+  "@reown/appkit": false
+  bufferutil: false
+  secp256k1: false
+  utf-8-validate: false
