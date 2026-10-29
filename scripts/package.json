@@ -5,6 +5,7 @@
   "scripts": {
     "e2e:setup": "node e2e.ts setup",
     "e2e": "node e2e.ts",
+    "admin": "node admin.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {

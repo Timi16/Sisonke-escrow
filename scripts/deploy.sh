@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 # Deploys sisonke-escrow, pinned to Circle USDC for the network.
 #
-#   scripts/deploy.sh                                   # Testnet
-#   NETWORK=mainnet ADMIN=G...multisig RPC_URL=... scripts/deploy.sh
+#   scripts/deploy.sh                                   # Testnet, 2-of-3 multisig admin, 1 h delay
+#   NETWORK=mainnet ADMIN=G...multisig UPGRADE_DELAY=172800 RPC_URL=... scripts/deploy.sh
 #
 # Env:
 #   NETWORK   testnet (default) or mainnet; anything else is refused
 #   SOURCE    sisonke-deployer: stellar CLI identity that pays for the deploy
 #             (created and Friendbot-funded on Testnet only)
-#   ADMIN     admin address. Testnet: defaults to the SOURCE address.
+#   ADMIN     admin address. Testnet: defaults to a 2-of-3 native multisig
+#             account created (or reused) by scripts/multisig-admin.sh as the
+#             identity ADMIN_NAME (default sisonke-admin), never the deployer key.
 #             Off Testnet: required, and must not be the SOURCE key (use a
-#             multisig account; the admin can upgrade the code, see docs/UPGRADES.md)
+#             multisig account; the admin can upgrade the code, see docs/UPGRADES.md),
+#             and is verified with scripts/multisig-admin.sh against:
+#   ADMIN_SIGNER_KEYS  off Testnet: the admin's expected signer public keys, G…,G…,G…
+#   ADMIN_THRESHOLD    off Testnet: its expected threshold M (default 2)
+#   UPGRADE_DELAY  seconds every proposed upgrade waits (contract bounds 60 s to
+#             30 days). Testnet default 3600; mainnet required, at least 172800 (2 days)
 #   ALIAS     sisonke-escrow (stellar CLI contract alias)
 #   ENV_FILE  deployments/<network>.env, or deployments/<network>.<alias>.env for
 #             any other alias, so a demo instance never overwrites the real one
@@ -26,6 +33,7 @@ NETWORK="${NETWORK:-testnet}"
 SOURCE="${SOURCE:-sisonke-deployer}"
 ALIAS="${ALIAS:-sisonke-escrow}"
 FORCE="${FORCE:-}"
+ADMIN_NAME="${ADMIN_NAME:-sisonke-admin}"
 WASM="target/wasm32v1-none/release/sisonke_escrow.wasm"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -105,14 +113,37 @@ SOURCE_ADDRESS="$(stellar keys address "$SOURCE")"
 is_account_id "$SOURCE_ADDRESS" || die "Unexpected address for $SOURCE: '$SOURCE_ADDRESS'"
 
 if [ "$NETWORK" = "testnet" ]; then
-  ADMIN="${ADMIN:-$SOURCE_ADDRESS}"
+  if [ -z "${ADMIN:-}" ]; then
+    echo "creating or reusing the multisig admin $ADMIN_NAME"
+    ADMIN="$(NETWORK="$NETWORK" NAME="$ADMIN_NAME" "$ROOT/scripts/multisig-admin.sh")"
+  fi
+  [ "$ADMIN" != "$SOURCE_ADDRESS" ] || echo "warning: the admin is the deployer key itself (single signer)" >&2
 else
   [ -n "${ADMIN:-}" ] || die "Set ADMIN explicitly off Testnet (a multisig account, not the deployer key)."
   [ "$ADMIN" != "$SOURCE_ADDRESS" ] || die "ADMIN must not be the deployer key $SOURCE off Testnet."
+  [ -n "${ADMIN_SIGNER_KEYS:-}" ] ||
+    die "Set ADMIN_SIGNER_KEYS to the admin's expected signer public keys (G…,G…,G…) so the account can be verified."
+  # Exactly those signers, weight 1 each, thresholds M, master weight 0.
+  NETWORK="$NETWORK" RPC_URL="$RPC_URL" HORIZON_URL="$HORIZON_URL" SIGNERS="$ADMIN_SIGNER_KEYS" \
+    THRESHOLD="${ADMIN_THRESHOLD:-2}" "$ROOT/scripts/multisig-admin.sh" verify "$ADMIN" >/dev/null
 fi
 is_account_id "$ADMIN" || is_contract_id "$ADMIN" || die "ADMIN is not a Stellar address: '$ADMIN'"
 echo "deployer: $SOURCE_ADDRESS"
 echo "admin:    $ADMIN"
+
+# Upgrade delay: how long users get to exit before a proposed upgrade can run.
+if [ "$NETWORK" = "testnet" ]; then
+  UPGRADE_DELAY="${UPGRADE_DELAY:-3600}"
+else
+  [ -n "${UPGRADE_DELAY:-}" ] || die "Set UPGRADE_DELAY explicitly off Testnet (seconds, at least 172800 = 2 days)."
+fi
+is_number "$UPGRADE_DELAY" || die "UPGRADE_DELAY must be a number of seconds"
+[ "$UPGRADE_DELAY" -ge 60 ] && [ "$UPGRADE_DELAY" -le 2592000 ] ||
+  die "UPGRADE_DELAY must be between 60 and 2592000 (30 days); the contract refuses anything else."
+if [ "$NETWORK" != "testnet" ] && [ "$UPGRADE_DELAY" -lt 172800 ]; then
+  die "UPGRADE_DELAY must be at least 172800 (2 days) off Testnet, so users have time to exit."
+fi
+echo "upgrade delay: $UPGRADE_DELAY s"
 
 # 2. USDC Stellar Asset Contract: must be exactly the expected id.
 step "USDC Stellar Asset Contract"
@@ -160,7 +191,7 @@ if ! CONTRACT_ID="$(
     --wasm-hash "$WASM_HASH" \
     --source "$SOURCE" "${NET[@]}" \
     --alias "$ALIAS" \
-    -- --admin "$ADMIN" --token "$USDC_SAC_ID" 2>"$DEPLOY_LOG"
+    -- --admin "$ADMIN" --token "$USDC_SAC_ID" --upgrade_delay "$UPGRADE_DELAY" 2>"$DEPLOY_LOG"
 )"; then
   cat "$DEPLOY_LOG" >&2
   die "Deploy failed"
@@ -186,6 +217,7 @@ expect storage_version 1
 expect is_paused false
 expect upgrades_enabled true
 expect admin "$ADMIN"
+expect upgrade_delay "$UPGRADE_DELAY"
 expect escrow_count 0
 
 # 6. Record the deployment.
@@ -205,6 +237,7 @@ NEXT_PUBLIC_SISONKE_DEPLOY_LEDGER=$DEPLOY_LEDGER
 SISONKE_DEPLOY_TX=${DEPLOY_TX:-unknown}
 SISONKE_WASM_HASH=$WASM_HASH
 SISONKE_ADMIN=$ADMIN
+SISONKE_UPGRADE_DELAY=$UPGRADE_DELAY
 SISONKE_SOURCE_REV=$GIT_REV
 EOF
 

@@ -101,6 +101,12 @@ const ERROR_NAMES: Record<number, string> = {
   143: "Overflow",
   200: "UpgradesLocked",
   201: "NoPendingAdmin",
+  202: "InvalidUpgradeDelay",
+  203: "NoPendingUpgrade",
+  204: "UpgradeTooEarly",
+  205: "UpgradeDelayDecrease",
+  206: "UpgradeHashMismatch",
+  207: "UpgradeExpired",
 };
 /** One line per code for the TRANSACTIONS.md legend (docs/CONTRACT.md, Errors). */
 const ERROR_MEANINGS: Record<number, string> = {
