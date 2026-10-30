@@ -4,7 +4,8 @@
  *   pnpm dev            # or pnpm build && pnpm start
  *   pnpm screens        # BASE_URL=http://localhost:3000 by default
  *
- * Writes full-page PNGs to e2e/shots/<desktop|phone>/<nn>-<name>.png, and with
+ * Writes full-page PNGs to e2e/shots/<desktop|phone>/<nn>-<name>.png (the
+ * folders are emptied first, so the numbering always matches this run), and with
  * E2E_VIDEO=1 a video per browser context to e2e/videos/.
  *
  * Needs no e2e run first. Final states come from the live escrows the
@@ -19,7 +20,7 @@
  * Every shot waits for network idle and fonts, and fails the run on any
  * console error (CSP violations included) or horizontal scroll.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Keypair } from "@stellar/stellar-sdk";
 import { chromium } from "playwright-core";
@@ -186,6 +187,11 @@ async function shot(browser, name, opts) {
 const h1 = (page) => page.getByRole("heading", { level: 1 }).first().waitFor({ timeout: 30_000 });
 const escrowReady = (page) => page.getByRole("heading", { level: 1, name: /Escrow #/i }).waitFor({ timeout: 30_000 });
 const text = (t) => (page) => page.getByText(t).first().waitFor({ timeout: 30_000 });
+/** Overview and Escrows: the wallet's three party reads have landed. */
+const listReady = async (page) => {
+  await h1(page);
+  await page.getByText("Loading your escrows from Stellar…").waitFor({ state: "detached", timeout: 45_000 });
+};
 
 // ------------------------------------------------------------------ run
 
@@ -202,45 +208,71 @@ async function main() {
   // The stranger needs an account for "Try anyway" (simulation loads the source account).
   await friendbot(stranger.publicKey());
 
+  rmSync(SHOTS, { recursive: true, force: true });
   const browser = await chromium.launch({ executablePath: CHROME });
   try {
     await shot(browser, "landing", { path: "/", ready: h1 });
     await shot(browser, "rules", { path: "/rules", ready: h1 });
-    await shot(browser, "setup fresh", { path: "/setup", ready: h1 });
-    if (fund) await shot(browser, "setup ready", { path: "/setup", address: fund.publicKey(), ready: text(/You're ready/) });
+    await shot(browser, "test funds fresh", { path: "/setup", ready: h1 });
+    if (fund) await shot(browser, "test funds ready", { path: "/setup", address: fund.publicKey(), ready: text(/You're ready/) });
 
-    await shot(browser, "dashboard disconnected", { path: "/dashboard", ready: text("Connect to see your escrows") });
-    await shot(browser, "dashboard paying", { path: "/dashboard", address: live[3].payer, ready: text(/#000\d/) });
-    await shot(browser, "dashboard receiving", {
-      path: "/dashboard",
+    await shot(browser, "overview disconnected", { path: "/overview", ready: text("Connect your wallet to see your escrows") });
+    await shot(browser, "overview connected", { path: "/overview", address: live[3].payer, ready: listReady });
+    if (fund) await shot(browser, "overview funder", { path: "/overview", address: fund.publicKey(), ready: listReady });
+    await shot(browser, "overview arbiter", { path: "/overview", address: live[1].arbiter, ready: listReady });
+    await shot(browser, "connect modal", {
+      path: "/overview",
+      ready: text("Connect your wallet to see your escrows"),
+      act: async (page) => {
+        await page.locator("button:visible", { hasText: /^Connect( wallet)?$/ }).first().click();
+        await page.getByRole("dialog").getByRole("heading", { name: "Connect a wallet" }).waitFor();
+      },
+    });
+    await shot(browser, "wallet ticket", {
+      path: "/overview",
+      address: fund?.publicKey() ?? live[3].payer,
+      ready: listReady,
+      act: async (page) => {
+        await page.locator('button[aria-label^="Wallet account"]:visible').first().click();
+        await page.getByRole("dialog", { name: "Your wallet" }).waitFor();
+      },
+    });
+
+    await shot(browser, "escrows disconnected", { path: "/escrows", ready: text("Connect to see your escrows") });
+    await shot(browser, "escrows paying", { path: "/escrows", address: fund?.publicKey() ?? live[3].payer, ready: listReady });
+    await shot(browser, "escrows receiving", {
+      path: "/escrows",
       address: live[3].recipient,
+      ready: listReady,
       act: async (page) => {
-        await page.getByRole("tab", { name: /receiving/i }).click();
-        await page.waitForTimeout(800);
+        await page.getByRole("button", { name: /^Receiving/ }).click();
+        await page.waitForTimeout(400);
       },
     });
-    await shot(browser, "dashboard arbiter", {
-      path: "/dashboard",
+    await shot(browser, "escrows closed", {
+      path: "/escrows",
       address: live[1].arbiter,
+      ready: listReady,
       act: async (page) => {
-        await page.getByRole("tab", { name: /arbiter/i }).click();
-        await page.waitForTimeout(800);
+        await page.getByRole("button", { name: /^Closed/ }).click();
+        await page.waitForTimeout(400);
       },
     });
 
-    await shot(browser, "find found", { path: "/find?id=3", ready: text("Open escrow") });
-    await shot(browser, "find not found", { path: `/find?id=${Number(info.escrowCount) + 50}`, ready: text(/No escrow #/) });
+    await shot(browser, "find found", { path: "/find?id=3", ready: (page) => page.getByRole("link", { name: "Open escrow #0003" }).waitFor({ timeout: 30_000 }) });
+    await shot(browser, "find not found", { path: `/find?id=${Number(info.escrowCount) + 50}`, ready: text("No escrow with that number.") });
     await shot(browser, "find invalid", {
       path: "/find",
       ready: h1,
       act: async (page) => {
-        await page.getByLabel("Escrow ID or link").fill("abc");
-        await page.getByRole("button", { name: "Find it" }).click();
-        await text(/doesn't look like an escrow ID/)(page);
+        await page.getByLabel("Escrow number or link").fill("abc");
+        await page.getByRole("button", { name: "Search", exact: true }).click();
+        await text(/doesn't look like an escrow number/)(page);
       },
     });
 
     const payerForNew = fund?.publicKey() ?? live[3].payer;
+    await shot(browser, "new disconnected", { path: "/new", ready: h1 });
     await shot(browser, "new empty", { path: "/new", address: payerForNew, ready: h1 });
     await shot(browser, "new filled", {
       path: "/new",
@@ -250,7 +282,20 @@ async function main() {
         await page.locator("#recipient").fill(live[3].recipient);
         await page.locator("#amount").fill("0.5");
         await page.locator("#title").fill("Logo for the café");
+        await page.getByRole("switch", { name: "Add an arbiter" }).click();
+        await page.locator("#arbiter").fill(live[1].arbiter);
         await page.locator("#title").blur();
+      },
+    });
+    await shot(browser, "new errors", {
+      path: "/new",
+      address: payerForNew,
+      ready: h1,
+      act: async (page) => {
+        await page.locator("#recipient").fill("GABC");
+        await page.locator("#recipient").blur();
+        await page.locator("#amount").fill("1,5");
+        await page.locator("#amount").blur();
       },
     });
     if (fund) {
@@ -263,7 +308,7 @@ async function main() {
           await page.locator("#recipient").fill(live[3].recipient);
           await page.locator("#amount").fill("0.1");
           await page.getByRole("button", { name: "Create escrow" }).click();
-          await text(/is asking you to sign/)(page);
+          await text(/Approve in Varial/)(page);
         },
       });
     }
@@ -299,7 +344,8 @@ async function main() {
         address: stranger.publicKey(),
         ready: escrowReady,
         act: async (page) => {
-          const row = page.getByRole("listitem").filter({ hasText: /^\s*Release/ }).first();
+          await page.getByRole("button", { name: "Check other actions" }).click();
+          const row = page.locator("#blocked-list").getByRole("listitem").filter({ hasText: /^\s*Release/ }).first();
           await row.getByRole("button", { name: "Try anyway" }).click();
           await text("Rejected by the contract")(page);
         },
@@ -311,13 +357,25 @@ async function main() {
           hold: true,
           ready: escrowReady,
           act: async (page) => {
-            await page.getByRole("button", { name: "Release to recipient" }).click();
-            await text(/is asking you to sign/)(page);
+            await page.getByRole("button", { name: /^Release [\d.,]+ USDC$/ }).click();
+            await page.getByRole("button", { name: "Yes, release it" }).click();
+            await text(/Approve in Varial/)(page);
           },
         });
       }
     }
-    await shot(browser, "escrow not found", { path: `/escrow/${Number(info.escrowCount) + 50}`, ready: text(/No escrow #/) });
+    if (open.funded && fund && open.funded.payer === fund.publicKey()) {
+      await shot(browser, "escrow confirm step", {
+        path: `/escrow/${open.funded.id}`,
+        address: fund.publicKey(),
+        ready: escrowReady,
+        act: async (page) => {
+          await page.getByRole("button", { name: /^Release [\d.,]+ USDC$/ }).click();
+          await text("This can’t be undone.")(page);
+        },
+      });
+    }
+    await shot(browser, "escrow not found", { path: `/escrow/${Number(info.escrowCount) + 50}`, ready: text("No escrow with that number.") });
 
     const dev = await fetch(`${BASE}/dev/notices`).then((r) => r.status).catch(() => 0);
     if (dev === 200) await shot(browser, "dev notices", { path: "/dev/notices", ready: h1 });

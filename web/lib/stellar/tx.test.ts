@@ -97,7 +97,7 @@ describe("precheck", () => {
   test("connection, network and XLM", () => {
     expect(precheck({ ...base, connected: false })?.title).toBe("Connect a wallet");
     expect(precheck({ ...base, onTestnet: false })?.title).toBe("Wrong network");
-    expect(precheck({ ...base, readiness: { exists: false, usdc: null } })?.body).toBe("This wallet has no XLM yet. Get test XLM in setup.");
+    expect(precheck({ ...base, readiness: { exists: false, usdc: null } })?.body).toBe("This wallet has no XLM yet. Get test XLM in Test funds.");
   });
   test("deposits need a trustline and enough USDC", () => {
     expect(precheck({ ...base, readiness: { exists: true, usdc: null }, amount: 1n })?.title).toBe("Your wallet can't hold USDC yet");
