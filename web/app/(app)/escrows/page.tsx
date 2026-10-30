@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { DashboardScreen } from "./DashboardScreen";
+import { EscrowsScreen } from "./EscrowsScreen";
 
 export const metadata: Metadata = {
-  title: "My escrows",
+  title: "Escrows",
   description: "Every Sisonke escrow you're paying, receiving or arbitrating, read live from Stellar Testnet.",
 };
 
-export default function DashboardPage() {
-  return <DashboardScreen />;
+export default function EscrowsPage() {
+  return <EscrowsScreen />;
 }
