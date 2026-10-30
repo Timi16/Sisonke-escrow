@@ -1,24 +1,26 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/cn";
 import { MAX_TITLE_BYTES } from "@/lib/config";
-import { duration, formatWhen, padId, shortAddress, toLocalInput } from "@/lib/format";
+import { duration, formatDayName, formatEnds, padId, shortAddress, toLocalInput } from "@/lib/format";
 import { useInfo, useReadiness } from "@/lib/hooks/queries";
 import { useLedgerClock } from "@/lib/hooks/useLedgerClock";
 import { checkArbiter, checkRecipient } from "@/lib/sisonke/address";
 import { balanceStroops, formatUsdc, parseAmount } from "@/lib/sisonke/amount";
 import { encodeCreate } from "@/lib/sisonke/contract";
-import { DEFAULT_PRESET, PRESETS, customDeadline, presetDeadline, type PresetId } from "@/lib/sisonke/deadline";
+import { DEFAULT_PRESET, PRESETS, checkDeadline, customDeadline, presetDeadline, type PresetId } from "@/lib/sisonke/deadline";
 import { checkTitle, titleBytes } from "@/lib/sisonke/title";
+import { PageHead } from "@/components/app/PageHead";
 import { TxError } from "@/components/tx/TxError";
-import { TxProgress } from "@/components/tx/TxProgress";
+import { TxSteps } from "@/components/tx/TxSteps";
 import { useTx } from "@/components/tx/TxProvider";
-import { AmountInput, FieldError, Hint, Input, Label } from "@/components/ui/Field";
-import { ChevronDown } from "@/components/ui/icons";
-import { Segmented } from "@/components/ui/Segmented";
+import { CopyButton } from "@/components/ui/CopyButton";
+import { ArrowIcon, CheckIcon, JoinedRings } from "@/components/ui/icons";
+import { Switch } from "@/components/ui/Switch";
 import { TxHash } from "@/components/ui/TxHash";
 import { useWallet } from "@/components/wallet/WalletProvider";
 
@@ -56,7 +58,8 @@ function deadlineOf(v: Pick<FormValues, "preset" | "customDeadline">, ledgerNow:
   if (ledgerNow === null) return { ok: false as const, error: "Checking Stellar's clock…" };
   if (v.preset === "custom") return customDeadline(v.customDeadline, ledgerNow);
   const p = PRESETS.find((x) => x.id === v.preset) ?? PRESETS[1];
-  return { ok: true as const, deadline: presetDeadline(ledgerNow, p.days) };
+  // Presets go through the same bounds as a picked date (min lead, max duration).
+  return checkDeadline(presetDeadline(ledgerNow, p.days), ledgerNow);
 }
 
 function amountError(raw: string, balance: bigint | null): string | null {
@@ -100,10 +103,37 @@ const contextResolver: Resolver<FormValues, Ctx> = (values, context, options) =>
     Resolver<FormValues, Ctx>
   >;
 
-function Bullet({ hollow, children }: { hollow?: boolean; children: React.ReactNode }) {
+/** A labelled field box: ground fill, ink border once valid, red once wrong. */
+function Box({ ok, bad, children, className }: { ok?: boolean; bad?: boolean; children: ReactNode; className?: string }) {
   return (
-    <li className="flex gap-3">
-      <span aria-hidden="true" className={cn("mt-2 size-2 shrink-0 rounded-pill", hollow ? "border-[1.5px] border-lime" : "bg-lime")} />
+    <div
+      className={cn(
+        "flex min-h-[52px] items-center gap-2.5 rounded-note border-[1.5px] px-4 transition-colors focus-within:border-violet",
+        bad ? "border-error bg-error-bg" : ok ? "border-ink bg-ground" : "border-line bg-ground",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+const inputCls = "min-w-0 flex-auto border-0 bg-transparent text-[15px] text-ink outline-none focus-visible:outline-none disabled:cursor-not-allowed";
+
+function Help({ id, bad, children }: { id: string; bad?: boolean; children: ReactNode }) {
+  return (
+    <span id={id} role={bad ? "alert" : undefined} className={cn("text-[13px] leading-[1.45]", bad ? "font-semibold text-error" : "text-muted")}>
+      {children}
+    </span>
+  );
+}
+
+function Rule({ hollow, children }: { hollow?: boolean; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5 text-sm leading-[1.45]">
+      <span aria-hidden="true" className={cn("mt-px flex size-[22px] shrink-0 items-center justify-center rounded-pill text-lime", hollow ? "border-[1.5px] border-ink-line" : "bg-ink-2")}>
+        {!hollow && <CheckIcon size={12} />}
+      </span>
       <span>{children}</span>
     </li>
   );
@@ -145,13 +175,12 @@ export function NewEscrowScreen() {
   const ready = !!address && rec.ok && amtOk && dl.ok && titleOk && arbOk && !paused && !wrongNet;
 
   const amtText = amt.ok ? formatUsdc(amt.stroops) : "0.00";
-  const recShort = rec.ok ? shortAddress(rec.address) : null;
-  const deadlineText = dl.ok ? formatWhen(dl.deadline) : "the deadline";
+  const recShort = rec.ok ? shortAddress(rec.address) : "G…";
   const working = !!state && state.phase !== "done" && state.phase !== "error";
   const done = state?.phase === "done" && state.result;
   // An unconfirmed create may still land: never let the form send a second one.
   const unconfirmed = state?.phase === "error" && !!state.error?.pending;
-  const locked = !address || working || !!done || unconfirmed;
+  const locked = working || !!done || unconfirmed;
 
   const hint = !address
     ? "Connect your wallet to continue."
@@ -162,7 +191,7 @@ export function NewEscrowScreen() {
         : ledgerNow === null
           ? "Checking Stellar's clock…"
           : !ready
-            ? "Add a valid address and amount to continue."
+            ? null
             : v.lockNow
               ? "One signature creates it and locks the USDC."
               : "Two signatures: this one creates it, the next deposits.";
@@ -198,8 +227,7 @@ export function NewEscrowScreen() {
     });
   });
 
-  const describe = (field: keyof FormValues, hasHint = true) =>
-    errors[field] ? `${field}-error` : hasHint ? `${field}-hint` : undefined;
+  const describe = (field: keyof FormValues) => `${field}-help`;
 
   const recipientReg = register("recipient");
   const arbiterReg = register("arbiter");
@@ -215,338 +243,323 @@ export function NewEscrowScreen() {
   };
 
   const bytes = titleBytes((v.title ?? "").trim());
+  const title = (v.title ?? "").trim();
+  const preset = v.preset ?? DEFAULT_PRESET;
+  const signLabel = !address ? "Connect wallet" : !rec.ok || !amt.ok ? "Enter recipient and amount" : v.lockNow ? `Fund ${amtText} USDC` : "Create escrow";
 
   return (
-    <main id="main" className="mx-auto flex max-w-[1240px] flex-col gap-9 px-4 pt-12 pb-24 min-[720px]:px-6">
-      <div className="rise flex flex-col gap-4" style={{ animationDelay: "60ms" }}>
-        <h1 className="display m-0 flex items-start leading-[0.95]">
-          <span className="inline-block bg-ink px-5 pt-3 pb-4 text-[clamp(40px,5vw,68px)] text-on-ink">New escrow</span>
-        </h1>
-        <p className="m-0 max-w-[24em] font-serif text-[clamp(24px,2.6vw,32px)] leading-[1.2]">
-          You&apos;re the payer. Fill it in, read the deal in plain English, then sign.
-        </p>
-      </div>
-
-      {!address && (
-        <div className="slidein flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-menu border-[1.5px] border-ink bg-card px-6 py-5">
-          <p className="m-0 max-w-[40em] text-base leading-normal">
-            Connect a Stellar wallet to create an escrow. New to Stellar?{" "}
-            <Link href="/setup" className="font-bold underline-offset-4">
-              Set up in four steps
-            </Link>
-            .
-          </p>
-          <button type="button" onClick={openConnect} className="min-h-12 rounded-pill border-0 bg-lime px-[22px] text-[15px] font-bold text-ink">
-            Connect wallet
-          </button>
-        </div>
-      )}
-
-      <form onSubmit={onSubmit} noValidate className="flex flex-wrap items-start gap-8">
+    <main id="main" className="flex flex-col gap-[22px]">
+      <PageHead title="New escrow" />
+      <form onSubmit={onSubmit} noValidate className="flex flex-wrap items-start gap-3">
         <fieldset
           disabled={locked}
-          className="rise m-0 flex min-w-0 flex-[999_1_520px] flex-col gap-7 rounded-panel border border-line bg-card p-6 min-[720px]:p-8"
+          className="rise m-0 flex min-w-0 flex-[999_1_420px] flex-col gap-6 rounded-shell border border-line bg-card p-6"
           style={{ animationDelay: "120ms" }}
         >
-          <legend className="sr-only">Escrow details</legend>
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="recipient" className="text-base">
-              Who are you paying?
-            </Label>
-            <Input
-              id="recipient"
-              placeholder="G…"
-              spellCheck={false}
-              autoComplete="off"
-              invalid={!!errors.recipient}
-              aria-describedby={describe("recipient")}
-              className="font-mono text-sm"
-              {...recipientReg}
-              onBlur={(e) => {
-                // Keep the secret-key warning: validating the now-empty field would replace it.
-                if (errors.recipient?.type === "secret") return;
-                void recipientReg.onBlur(e);
-              }}
-              onChange={(e) => {
-                if (guardSecret("recipient", e.target.value)) return;
-                if (errors.recipient?.type === "secret") clearErrors("recipient");
-                void recipientReg.onChange(e);
-              }}
-            />
-            {errors.recipient ? (
-              <FieldError id="recipient-error">{errors.recipient.message}</FieldError>
-            ) : (
-              <Hint id="recipient-hint" className="text-sm">
-                Their Stellar address. Starts with G, 56 characters.
-              </Hint>
-            )}
+          <legend className="sr-only">Deal details</legend>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="recipient" className="text-sm font-bold">
+              Recipient
+            </label>
+            <Box ok={rec.ok} bad={!!errors.recipient}>
+              <input
+                id="recipient"
+                placeholder="G…"
+                spellCheck={false}
+                autoComplete="off"
+                aria-invalid={!!errors.recipient || undefined}
+                aria-describedby={describe("recipient")}
+                className={cn(inputCls, "font-mono text-sm")}
+                {...recipientReg}
+                onBlur={(e) => {
+                  // Keep the secret-key warning: validating the now-empty field would replace it.
+                  if (errors.recipient?.type === "secret") return;
+                  void recipientReg.onBlur(e);
+                }}
+                onChange={(e) => {
+                  if (guardSecret("recipient", e.target.value)) return;
+                  if (errors.recipient?.type === "secret") clearErrors("recipient");
+                  void recipientReg.onChange(e);
+                }}
+              />
+              {rec.ok && !errors.recipient && <CheckIcon size={18} className="shrink-0 text-ok" />}
+            </Box>
+            <Help id="recipient-help" bad={!!errors.recipient}>
+              {errors.recipient?.message ?? "Stellar address, starts with G"}
+            </Help>
           </div>
 
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="amount" className="text-base">
-              How much?
-            </Label>
-            <AmountInput
-              id="amount"
-              placeholder="0.00"
-              invalid={!!errors.amount}
-              aria-describedby={describe("amount")}
-              className="max-w-[360px]"
-              {...register("amount")}
-            />
-            {errors.amount ? (
-              <FieldError id="amount-error">{errors.amount.message}</FieldError>
-            ) : (
-              <Hint id="amount-hint" className="text-sm">
-                {!address ? (
-                  "Your USDC balance shows once you connect."
+          <div className="flex flex-col gap-2">
+            <label htmlFor="amount" className="text-sm font-bold">
+              Amount
+            </label>
+            <Box ok={amtOk} bad={!!errors.amount}>
+              <input
+                id="amount"
+                inputMode="decimal"
+                placeholder="0.00"
+                autoComplete="off"
+                aria-invalid={!!errors.amount || undefined}
+                aria-describedby={describe("amount")}
+                className={cn(inputCls, "display tabular text-[21px]")}
+                {...register("amount")}
+              />
+              <span aria-hidden="true" className="text-sm font-extrabold">
+                USDC
+              </span>
+            </Box>
+            <Help id="amount-help" bad={!!errors.amount}>
+              {errors.amount?.message ??
+                (!address ? (
+                  "Your balance shows once you connect."
                 ) : !readiness.data ? (
                   "Checking your balance…"
                 ) : usdcLine && balance !== null && balance > 0n ? (
-                  <>Balance: {formatUsdc(balance)} test USDC</>
+                  <>Balance {formatUsdc(balance)} USDC</>
                 ) : (
                   <>
                     No USDC yet.{" "}
                     <Link href="/setup" className="font-bold text-violet underline-offset-4">
-                      Get test USDC in setup
+                      Get test USDC
                     </Link>
-                    .
                   </>
-                )}
-              </Hint>
-            )}
+                ))}
+            </Help>
           </div>
 
-          <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0" aria-describedby="deadline-hint">
-            <legend className="mb-2.5 p-0 text-base font-bold">Deadline</legend>
-            <Segmented<PresetId>
-              label="Deadline"
-              value={v.preset ?? DEFAULT_PRESET}
-              disabled={locked}
-              onChange={(p) => {
-                setValue("preset", p, { shouldValidate: formState.isSubmitted });
-                if (p === "custom" && !v.customDeadline && ledgerNow !== null) {
-                  setValue("customDeadline", toLocalInput(Math.floor(ledgerNow) + 3 * 86_400));
-                }
-              }}
-              options={[...PRESETS.map((p) => ({ value: p.id as PresetId, label: p.label })), { value: "custom", label: "Pick a date and time" }]}
-            />
-            {v.preset === "custom" && (
-              <div className="slidein flex flex-col gap-2">
-                <Label htmlFor="customDeadline">Date and time (your local time)</Label>
-                <Input
-                  id="customDeadline"
-                  type="datetime-local"
-                  invalid={!!errors.customDeadline}
-                  aria-describedby={errors.customDeadline ? "customDeadline-error" : undefined}
-                  className="max-w-[320px]"
-                  {...register("customDeadline")}
-                />
-                <FieldError id="customDeadline-error">{errors.customDeadline?.message}</FieldError>
+          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0" aria-describedby="deadline-help">
+            <legend className="mb-2 p-0 text-sm font-bold">Deadline</legend>
+            <div className="flex flex-wrap gap-2">
+              {[...PRESETS.map((p) => ({ value: p.id as PresetId, label: p.label })), { value: "custom" as PresetId, label: "Pick a date" }].map((o) => {
+                const on = o.value === preset;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      setValue("preset", o.value, { shouldValidate: formState.isSubmitted });
+                      if (o.value === "custom" && !v.customDeadline && ledgerNow !== null) {
+                        setValue("customDeadline", toLocalInput(Math.floor(ledgerNow) + 3 * 86_400));
+                      }
+                    }}
+                    className={cn("min-h-11 rounded-pill border-[1.5px] px-4 text-sm font-bold", on ? "border-ink bg-ink text-on-ink" : "border-line bg-ground text-ink")}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+            {preset === "custom" && (
+              <div className="slidein flex flex-col gap-2 pt-1">
+                <label htmlFor="customDeadline" className="text-[13px] font-semibold">
+                  Date and time (your local time)
+                </label>
+                <Box bad={!!errors.customDeadline} className="max-w-[320px]">
+                  <input
+                    id="customDeadline"
+                    type="datetime-local"
+                    aria-invalid={!!errors.customDeadline || undefined}
+                    aria-describedby="deadline-help"
+                    className={inputCls}
+                    {...register("customDeadline")}
+                  />
+                </Box>
               </div>
             )}
-            <p id="deadline-hint" className="m-0 text-sm leading-normal text-muted">
-              {dl.ok ? (
-                <>If the money is still locked after {deadlineText}, you can take it back.</>
-              ) : ledgerNow === null ? (
-                "Checking Stellar's clock…"
-              ) : (
-                "Pick a deadline to see when you can take it back."
-              )}
-            </p>
+            <Help id="deadline-help" bad={!!errors.customDeadline || !!errors.preset}>
+              {errors.customDeadline?.message ?? errors.preset?.message ?? (dl.ok ? <>Ends {formatEnds(dl.deadline)}</> : ledgerNow === null ? "Checking Stellar's clock…" : dl.error)}
+            </Help>
           </fieldset>
 
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="title" optional className="text-base">
-              What&apos;s it for?
-            </Label>
-            <Input
-              id="title"
-              autoComplete="off"
-              invalid={!!errors.title}
-              aria-describedby={`${errors.title ? "title-error " : ""}title-hint title-count`}
-              {...register("title")}
-            />
-            <FieldError id="title-error">{errors.title?.message}</FieldError>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="title" className="text-sm font-bold">
+              Title <span className="font-medium text-muted">Optional</span>
+            </label>
+            <Box bad={!!errors.title}>
+              <input
+                id="title"
+                autoComplete="off"
+                placeholder="e.g. Café logo, final files"
+                aria-invalid={!!errors.title || undefined}
+                aria-describedby="title-help title-count"
+                className={inputCls}
+                {...register("title")}
+              />
+            </Box>
             <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-              <Hint id="title-hint" className="text-sm">
-                Anyone with the escrow link can read this.
-              </Hint>
-              <span id="title-count" aria-live="polite" className={cn("tabular text-[13px]", bytes > MAX_TITLE_BYTES ? "font-bold text-error" : "text-muted")}>
+              <Help id="title-help" bad={!!errors.title}>
+                {errors.title?.message ?? "Anyone with the link can read it."}
+              </Help>
+              <span id="title-count" aria-live="polite" className={cn("tabular text-xs", bytes > MAX_TITLE_BYTES ? "font-bold text-error" : "text-muted")}>
                 {bytes} / {MAX_TITLE_BYTES} bytes
               </span>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                aria-expanded={!!v.arbiterOn}
-                aria-controls="arbiter-panel"
-                onClick={() => setValue("arbiterOn", !v.arbiterOn, { shouldValidate: formState.isSubmitted })}
-                className="inline-flex min-h-11 items-center gap-2 rounded-pill border-[1.5px] border-ink bg-transparent px-[18px] text-[15px] font-bold"
-              >
-                {v.arbiterOn ? "Remove the arbiter" : "Add an arbiter"}
-                <ChevronDown className={cn("transition-transform", v.arbiterOn && "rotate-180")} />
-              </button>
-              <span className="rounded-pill bg-sand px-2.5 py-0.5 text-xs font-semibold text-muted">Optional</span>
+          <div className="flex flex-col gap-3 rounded-menu bg-ground p-[18px]">
+            <div className="flex items-start gap-3.5">
+              <div className="flex flex-auto flex-col gap-1">
+                <span id="arb-l" className="text-sm font-bold">
+                  Add an arbiter
+                </span>
+                <span id="arb-d" className="text-[13px] leading-[1.45] text-muted">
+                  Can split the funds if you disagree.
+                </span>
+              </div>
+              <Switch on={!!v.arbiterOn} labelledBy="arb-l" describedBy="arb-d" disabled={locked} onChange={(on) => setValue("arbiterOn", on, { shouldValidate: formState.isSubmitted })} />
             </div>
             {v.arbiterOn && (
-              <div id="arbiter-panel" className="slidein flex flex-col gap-2.5">
-                <Label htmlFor="arbiter">Arbiter&apos;s Stellar address</Label>
-                <Input
-                  id="arbiter"
-                  placeholder="G…"
-                  spellCheck={false}
-                  autoComplete="off"
-                  invalid={!!errors.arbiter}
-                  aria-describedby={describe("arbiter")}
-                  className="font-mono text-sm"
-                  {...arbiterReg}
-                  onBlur={(e) => {
-                    if (errors.arbiter?.type === "secret") return;
-                    void arbiterReg.onBlur(e);
-                  }}
-                  onChange={(e) => {
-                    if (guardSecret("arbiter", e.target.value)) return;
-                    if (errors.arbiter?.type === "secret") clearErrors("arbiter");
-                    void arbiterReg.onChange(e);
-                  }}
-                />
-                <FieldError id="arbiter-error">{errors.arbiter?.message}</FieldError>
-                <p id="arbiter-hint" className="m-0 rounded-note bg-sand px-4 py-3 text-sm leading-normal">
-                  Someone you both trust to decide if you disagree. They can split the money only after one of you opens a dispute. The recipient
-                  should only start work if they trust them too. Without an arbiter there&apos;s no dispute: the money moves only by your release,
-                  their refund, or your reclaim after the deadline.
-                </p>
+              <div className="popin flex flex-col gap-2">
+                <Box bad={!!errors.arbiter} ok={!!arbAddr} className="bg-card">
+                  <input
+                    id="arbiter"
+                    aria-label="Arbiter address"
+                    placeholder="Arbiter’s Stellar address"
+                    spellCheck={false}
+                    autoComplete="off"
+                    aria-invalid={!!errors.arbiter || undefined}
+                    aria-describedby={describe("arbiter")}
+                    className={cn(inputCls, "font-mono text-sm")}
+                    {...arbiterReg}
+                    onBlur={(e) => {
+                      if (errors.arbiter?.type === "secret") return;
+                      void arbiterReg.onBlur(e);
+                    }}
+                    onChange={(e) => {
+                      if (guardSecret("arbiter", e.target.value)) return;
+                      if (errors.arbiter?.type === "secret") clearErrors("arbiter");
+                      void arbiterReg.onChange(e);
+                    }}
+                  />
+                </Box>
+                <Help id="arbiter-help" bad={!!errors.arbiter}>
+                  {errors.arbiter?.message ?? "Someone you both trust. They act only after one of you opens a dispute."}
+                </Help>
               </div>
             )}
           </div>
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-note border-[1.5px] border-line-strong bg-ground px-4 py-3.5 text-[15px] font-semibold">
-            <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-[var(--color-ink)]" {...register("lockNow")} />
-            <span className="flex flex-col gap-0.5">
-              Lock the USDC now, in the same signature
-              <span className="text-[13px] font-normal text-muted">Off: you create it now and deposit from the escrow page.</span>
-            </span>
-          </label>
+          <div className="flex items-start gap-3.5 rounded-menu bg-ground p-[18px]">
+            <div className="flex flex-auto flex-col gap-1">
+              <span id="lock-l" className="text-sm font-bold">
+                Fund now
+              </span>
+              <span id="lock-d" className="text-[13px] leading-[1.45] text-muted">
+                {v.lockNow ? "Create and fund in one signature." : "Create now, fund later."}
+              </span>
+            </div>
+            <Switch on={!!v.lockNow} labelledBy="lock-l" describedBy="lock-d" disabled={locked} onChange={(on) => setValue("lockNow", on)} />
+          </div>
         </fieldset>
 
-        <aside
-          aria-label="Summary"
-          className="rise flex min-w-0 flex-[1_1_380px] flex-col gap-6 rounded-panel bg-ink p-6 text-on-ink min-[720px]:p-[30px]"
-          style={{ animationDelay: "180ms" }}
-        >
-          <h2 className="m-0 font-serif text-4xl font-normal leading-none">Here&apos;s the deal</h2>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5">
-            <div className="flex min-w-0 flex-col gap-1 rounded-field border border-ink-line bg-ink-2 px-2.5 py-3 min-[720px]:px-3.5">
-              <span className="text-xs text-on-ink-muted">You</span>
-              <span className="truncate font-mono text-xs">{address ? shortAddress(address) : "Not connected"}</span>
-            </div>
-            <div className="glow flex flex-col items-center gap-0.5 rounded-field bg-lime px-2.5 py-2.5 min-[720px]:px-3.5 text-ink">
-              <span className="text-[11px] font-bold">Contract holds</span>
-              <span className="display tabular whitespace-nowrap text-xl leading-[1.1]">{amtText}</span>
-            </div>
-            <div className="flex min-w-0 flex-col items-end gap-1 rounded-field border border-ink-line bg-ink-2 px-2.5 py-3 min-[720px]:px-3.5 text-right">
-              <span className="text-xs text-on-ink-muted">Recipient</span>
-              <span className="truncate font-mono text-xs">{recShort ?? "Not set"}</span>
-            </div>
-          </div>
-          <ul className="m-0 flex list-none flex-col gap-3 p-0 text-base leading-normal text-on-ink-soft">
-            <Bullet>
-              {v.lockNow ? (
+        <section aria-label="Summary" className="rise flex min-w-0 flex-[1_1_340px] flex-col rounded-shell bg-ink p-6 text-on-ink" style={{ animationDelay: "180ms" }}>
+          {done && state?.result ? (
+            <div className="popin flex flex-col gap-[18px]">
+              <JoinedRings width={120} ring="var(--color-on-ink)" lens="var(--color-lime)" stroke={5} />
+              <h2 className="display m-0 text-[26px] leading-[0.98]">Escrow {state.escrowId ? padId(state.escrowId) : ""} is live.</h2>
+              <p className="m-0 text-[15px] leading-normal text-on-ink-muted">
+                {v.lockNow ? `${amtText} USDC locked.` : "Waiting for your deposit."} Transaction <TxHash hash={state.result.hash} className="!text-lime" />
+              </p>
+              {state.escrowId && (
                 <>
-                  You lock <strong className="text-white">{amtText} USDC</strong> in the Sisonke contract.
-                </>
-              ) : (
-                <>
-                  After you deposit, <strong className="text-white">{amtText} USDC</strong> is locked in the Sisonke contract.
+                  <CopyButton
+                    value={() => `${window.location.origin}/escrow/${state.escrowId}`}
+                    label="Copy link"
+                    done="Link copied"
+                    variant="on-ink-outline"
+                    className="!min-h-[52px] !border-on-ink !text-sm"
+                  />
+                  <Link
+                    href={`/escrow/${state.escrowId}`}
+                    className="lift-app flex min-h-[52px] items-center justify-center gap-2 rounded-pill bg-lime text-[15px] font-extrabold text-ink no-underline hover:text-ink"
+                  >
+                    Open the escrow
+                    <ArrowIcon size={16} />
+                  </Link>
                 </>
               )}
-            </Bullet>
-            <Bullet>Only you can release it to {recShort ?? "the recipient"}.</Bullet>
-            <Bullet>{recShort ?? "The recipient"} can refund it to you at any time.</Bullet>
-            <Bullet hollow>If it&apos;s still locked on {deadlineText}, you can take it back.</Bullet>
-            {v.arbiterOn && (
-              <Bullet>
-                If either of you opens a dispute before the deadline, {arbAddr ? shortAddress(arbAddr) : "the arbiter"} decides the split.
-              </Bullet>
-            )}
-            {showUpgradeNote && info && (
-              <Bullet hollow>
-                This contract&apos;s code can be upgraded after a public {duration(info.upgradeDelay)} notice. If that ever happens before{" "}
-                {deadlineText}, you could only get your money back early through {recShort ?? "the recipient"}&apos;s refund
-                {v.arbiterOn ? ", or the arbiter" : ""}. Pick a shorter deadline if you want to be able to leave on your own.
-              </Bullet>
-            )}
-          </ul>
-
-          <div className="flex flex-col gap-2.5 border-t border-ink-line pt-5">
-            {done && state?.result ? (
-              <div className="slidein flex flex-col gap-3.5">
-                <span className="display text-[30px]">Escrow {state.escrowId ? padId(state.escrowId) : ""} is live.</span>
-                <p className="m-0 text-sm leading-normal text-on-ink-muted">
-                  Created in transaction <TxHash hash={state.result.hash} className="!text-lime" />
-                  {v.lockNow ? " and the USDC is locked." : ". Deposit next so the recipient can see the money is locked."}
-                </p>
-                <div className="flex flex-wrap items-center gap-x-[18px] gap-y-2.5">
-                  {state.escrowId && (
-                    <Link
-                      href={`/escrow/${state.escrowId}`}
-                      className="display lift inline-flex min-h-[52px] items-center rounded-pill bg-lime px-6 text-xl text-ink no-underline hover:text-ink"
-                    >
-                      Go to escrow
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      tx.clear("create");
-                      reset(DEFAULTS);
-                    }}
-                    className="min-h-11 border-0 bg-transparent px-1 text-sm text-on-ink underline underline-offset-[5px]"
-                  >
-                    Create another
-                  </button>
-                </div>
+              <button
+                type="button"
+                onClick={() => {
+                  tx.clear("create");
+                  reset(DEFAULTS);
+                }}
+                className="min-h-11 self-center border-0 bg-transparent px-1 text-sm text-on-ink underline underline-offset-[5px]"
+              >
+                Create another
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-[18px]">
+              <span className="font-mono text-xs tracking-[0.08em] text-on-ink-muted uppercase">Summary</span>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm text-on-ink-muted">{v.lockNow ? "You pay" : "You’ll deposit"}</span>
+                <span className="flex items-baseline gap-2">
+                  <span className="display tabular text-[35px] leading-[0.95] text-lime">{amtText}</span>
+                  <span className="text-sm font-extrabold">USDC</span>
+                </span>
+                <span className="text-[15px] leading-normal break-words">
+                  to <span className="rounded-lg bg-ink-2 px-2 py-0.5 font-mono">{recShort}</span> {title && <>for “{title}”</>}
+                </span>
               </div>
-            ) : state?.phase === "error" && state.error ? (
-              <TxError error={state.error} onInk onRetry={() => tx.clear("create")} />
-            ) : working && state ? (
-              <TxProgress
-                tx={state}
-                walletName={walletName}
-                source={address}
-                onInk
-                showTitle={false}
-                statusNote={v.lockNow ? "Status: Funded." : "Status: Awaiting deposit — not funded."}
-              />
-            ) : (
-              <>
-                <button
-                  type="submit"
-                  aria-disabled={!ready || tx.busy || undefined}
-                  onClick={(e) => {
-                    if (!ready || tx.busy) {
-                      e.preventDefault();
-                      if (address) void form.trigger();
-                    }
-                  }}
-                  className={cn(
-                    "display min-h-[60px] w-full rounded-pill border-0 text-[22px]",
-                    ready ? "lift bg-lime text-ink" : "cursor-not-allowed bg-ink-3 text-faint",
+              <div aria-hidden="true" className="-mx-6 flex items-center">
+                <span className="h-[22px] w-3 shrink-0 rounded-r-pill bg-ground" />
+                <span className="mx-2 flex-auto border-t-2 border-dashed border-ink-line" />
+                <span className="h-[22px] w-3 shrink-0 rounded-l-pill bg-ground" />
+              </div>
+              <ul className="m-0 flex list-none flex-col gap-3 p-0">
+                <Rule>Only you can release.</Rule>
+                <Rule>Only they can refund.</Rule>
+                <Rule>
+                  {dl.ok ? <>You can reclaim after {formatDayName(dl.deadline)}</> : "You can reclaim after the deadline"}
+                  {v.arbiterOn ? ", unless a dispute is open." : "."}
+                </Rule>
+                {v.arbiterOn && <Rule>{arbAddr ? shortAddress(arbAddr) : "The arbiter"} can split it in a dispute.</Rule>}
+                {showUpgradeNote && info && (
+                  <Rule hollow>
+                    The code can be upgraded after a public {duration(info.upgradeDelay)} notice. If that happens before the deadline, only {recShort === "G…" ? "the recipient" : recShort}
+                    &apos;s refund{v.arbiterOn ? " or the arbiter" : ""} could return your money early. Pick a shorter deadline to keep an exit of your own.
+                  </Rule>
+                )}
+              </ul>
+              <span className="text-[13px] text-on-ink-muted">Network fee under 0.25 XLM · No platform fee</span>
+              {state?.phase === "error" && state.error ? (
+                <TxError error={state.error} onInk onRetry={() => tx.clear("create")} />
+              ) : working && state ? (
+                <TxSteps tx={state} walletName={walletName} className="bg-ink-2" />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {!address ? (
+                    <button type="button" onClick={() => openConnect("new")} className="display lift-app min-h-[52px] w-full rounded-pill border-0 bg-lime text-lg text-ink">
+                      Connect wallet
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      aria-disabled={!ready || tx.busy || undefined}
+                      onClick={(e) => {
+                        if (!ready || tx.busy) {
+                          e.preventDefault();
+                          void form.trigger();
+                        }
+                      }}
+                      className={cn("display min-h-[52px] w-full rounded-pill border-0 text-lg", ready ? "lift-app bg-lime text-ink" : "cursor-not-allowed bg-ink-line text-faint")}
+                    >
+                      {signLabel}
+                    </button>
                   )}
-                >
-                  Create escrow
-                </button>
-                <p className="m-0 text-center text-[13px] text-on-ink-muted" aria-live="polite">
-                  {hint}
-                </p>
-              </>
-            )}
-          </div>
-        </aside>
+                  {hint && (
+                    <p className="m-0 text-center text-[13px] text-on-ink-muted" aria-live="polite">
+                      {hint}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </form>
     </main>
   );

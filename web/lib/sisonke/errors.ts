@@ -164,7 +164,7 @@ export function sacError(code: number, c: ErrorContext): FriendlyError {
       return {
         code,
         title: `${w.label} wallet can't hold USDC yet`,
-        body: `Add the USDC trustline in setup. It takes one signature.${MOVED}`,
+        body: `Add the USDC trustline in Test funds. It takes one signature.${MOVED}`,
         fix: w.own ? { label: "Add the trustline", href: "/setup" } : undefined,
       };
     default:
@@ -186,7 +186,7 @@ const ROLE_FOR: Record<string, string> = {
 
 const SEND_CODES: Record<string, { title: string; body: string; fix?: Fix }> = {
   txBadSeq: { title: "Try again", body: "Your account changed since we checked. Try again. Nothing was sent." },
-  txInsufficientBalance: { title: "Not enough XLM", body: "Not enough XLM for the fee. Get test XLM in setup. Nothing was sent.", fix: { label: "Get test XLM", href: "/setup" } },
+  txInsufficientBalance: { title: "Not enough XLM", body: "Not enough XLM for the fee. Get test XLM in Test funds. Nothing was sent.", fix: { label: "Get test XLM", href: "/setup" } },
   txInsufficientFee: { title: "Fee too low", body: "Stellar wanted a higher fee. Try again. Nothing was sent." },
   txTooLate: { title: "It expired", body: "It expired before it was sent. Try again. Nothing was sent." },
   txBadAuth: { title: "Signature didn't match", body: "The signature didn't match. Is your wallet on Testnet? Nothing was sent." },

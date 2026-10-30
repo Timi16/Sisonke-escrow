@@ -1,11 +1,12 @@
 /**
- * How each status is presented: chip label, where the money is, the sentence
- * under the money strip, the progress steps and dashboard row hints.
- * Everything here derives from the chain read (INTEGRATION §3).
+ * How each status is presented: chip labels, the "where the money is" card
+ * and its one-line story. Everything here derives from the chain read
+ * (INTEGRATION §3).
  */
 import { formatUsdc } from "./amount";
-import type { Escrow, EscrowView, Role, Status } from "./types";
+import type { Escrow, EscrowView, Status } from "./types";
 
+/** Chip labels on the website (landing, rules). */
 export const STATUS_LABEL: Record<Status, string> = {
   Created: "Awaiting deposit — not funded",
   Funded: "Funded",
@@ -15,43 +16,18 @@ export const STATUS_LABEL: Record<Status, string> = {
   Split: "Split",
   Cancelled: "Cancelled",
 };
+
+/**
+ * Chip labels in the app (docs/design/app): Funded reads "Locked". Created keeps
+ * "— not funded" because INTEGRATION §3 requires it wherever the status shows.
+ */
+export const APP_STATUS_LABEL: Record<Status, string> = { ...STATUS_LABEL, Funded: "Locked" };
+
 export const DEADLINE_PASSED_LABEL = "Deadline passed";
 
 /** The "Deadline passed" modifier chip shows on open, deadline-bound statuses. */
 export const showsDeadlinePassed = (view: EscrowView) =>
   view.deadlinePassed && (view.escrow.status === "Created" || view.escrow.status === "Funded");
-
-export type Cell = "payer" | "contract" | "recipient";
-
-export interface MoneyPosition {
-  /** CSS left of the coin, as a percentage string. */
-  coinLeft: string;
-  coinFaded: boolean;
-  /** Highlighted cells and their fill. */
-  highlight: Partial<Record<Cell, "ground" | "lime" | "lilac">>;
-  /** What the contract holds for this escrow right now. */
-  contractHolds: bigint;
-  caption: string;
-}
-
-export function moneyPosition(e: Escrow): MoneyPosition {
-  switch (e.status) {
-    case "Created":
-      return { coinLeft: "16.66%", coinFaded: false, highlight: { payer: "ground" }, contractHolds: 0n, caption: "Nothing locked yet" };
-    case "Funded":
-      return { coinLeft: "50%", coinFaded: false, highlight: { contract: "lime" }, contractHolds: e.amount, caption: "Locked until released or refunded" };
-    case "Disputed":
-      return { coinLeft: "50%", coinFaded: false, highlight: { contract: "lilac" }, contractHolds: e.amount, caption: "In dispute" };
-    case "Released":
-      return { coinLeft: "83.33%", coinFaded: false, highlight: { recipient: "ground" }, contractHolds: 0n, caption: "Paid out to the recipient" };
-    case "Refunded":
-      return { coinLeft: "16.66%", coinFaded: false, highlight: { payer: "ground" }, contractHolds: 0n, caption: "Returned to the payer" };
-    case "Split":
-      return { coinLeft: "50%", coinFaded: true, highlight: { payer: "ground", recipient: "ground" }, contractHolds: 0n, caption: "Split by the arbiter" };
-    case "Cancelled":
-      return { coinLeft: "16.66%", coinFaded: false, highlight: {}, contractHolds: 0n, caption: "Nothing ever locked" };
-  }
-}
 
 /** Who closed it, as a role. */
 export function closedByRole(e: Escrow): "payer" | "recipient" | "arbiter" | null {
@@ -62,131 +38,68 @@ export function closedByRole(e: Escrow): "payer" | "recipient" | "arbiter" | nul
   return null;
 }
 
-/** The sentence under the money strip. */
-export function statusSentence(view: EscrowView, viewer: Role = "guest"): string {
-  const e = view.escrow;
-  const x = `${formatUsdc(e.amount)} USDC`;
+export type HoldTone = "awaiting" | "lime" | "violet" | "ink" | "line" | "split" | "muted";
+
+export interface MoneyCard {
+  /** The pill's label: "In escrow", "In dispute", "Released"… */
+  label: string;
+  tone: HoldTone;
+  /** The figure in the pill. Created and Cancelled show 0: nothing is or was locked. */
+  shown: bigint;
+  /** Under the figure. */
+  unit: string;
+  /** The rings that hold the money now. */
+  payerLit: boolean;
+  recipientLit: boolean;
+}
+
+/** The "where the money is" card: payer ring, the pill, recipient ring. */
+export function moneyCard(e: Escrow): MoneyCard {
+  const base = { unit: "USDC", payerLit: false, recipientLit: false };
   switch (e.status) {
     case "Created":
-      return `Waiting for ${viewer === "payer" ? "you" : "the payer"} to deposit ${x}. Nothing is locked yet.`;
+      return { ...base, label: "Awaiting deposit", tone: "awaiting", shown: 0n, unit: "USDC · nothing locked yet" };
     case "Funded":
-      return (
-        `${x} is locked in the contract. It moves only when the payer releases it or the recipient refunds it` +
-        `${e.arbiter ? ", or the arbiter decides a dispute" : ""}.` +
-        (view.deadlinePassed ? " The deadline has passed, so the payer can also take it back." : "")
-      );
+      return { ...base, label: "In escrow", tone: "lime", shown: e.amount };
     case "Disputed":
-      return `${x} is locked and in dispute. The arbiter decides how to split it. The payer can still release it, or the recipient can still refund it.`;
+      return { ...base, label: "In dispute", tone: "violet", shown: e.amount };
     case "Released":
-      return `${x} was paid to the recipient${closedByRole(e) === "arbiter" ? ", by the arbiter's decision" : ""}. This escrow is closed for good.`;
+      return { ...base, label: "Released", tone: "ink", shown: e.amount, recipientLit: true };
+    case "Refunded":
+      return { ...base, label: "Refunded", tone: "line", shown: e.amount, payerLit: true };
+    case "Split":
+      return { ...base, label: "Split", tone: "split", shown: e.amount, payerLit: true, recipientLit: true };
+    case "Cancelled":
+      return { ...base, label: "Cancelled", tone: "muted", shown: 0n, unit: "USDC · nothing ever moved" };
+  }
+}
+
+/** The one-line story under the money card (and on Find results). */
+export function statusSentence(view: EscrowView): string {
+  const e = view.escrow;
+  switch (e.status) {
+    case "Created":
+      return "Nothing locked yet. Waiting for the payer's deposit.";
+    case "Funded":
+      return view.deadlinePassed
+        ? "Locked in the contract. The deadline has passed, so the payer can also take it back."
+        : "Locked in the contract until released or refunded.";
+    case "Disputed":
+      return "In dispute. The arbiter decides the split.";
+    case "Released":
+      return closedByRole(e) === "arbiter" ? "Released to the recipient by the arbiter. Closed." : "Released to the recipient. Closed.";
     case "Refunded": {
-      const how =
-        closedByRole(e) === "recipient"
-          ? " The recipient refunded it."
-          : closedByRole(e) === "payer"
-            ? " The payer reclaimed it after the deadline."
-            : closedByRole(e) === "arbiter"
-              ? " The arbiter decided it."
-              : "";
-      return `${x} went back to the payer.${how} This escrow is closed for good.`;
+      const by = closedByRole(e);
+      if (by === "recipient") return "Refunded to the payer. The recipient refunded it. Closed.";
+      if (by === "payer") return "Back with the payer. The payer reclaimed it after the deadline. Closed.";
+      if (by === "arbiter") return "Refunded to the payer. The arbiter decided it. Closed.";
+      return "Refunded to the payer. Closed.";
     }
     case "Split":
-      return `The arbiter divided it: ${formatUsdc(e.paidToRecipient)} USDC to the recipient, ${formatUsdc(e.paidToPayer)} USDC to the payer. Closed for good.`;
+      return `Split ${formatUsdc(e.paidToRecipient)} to the recipient, ${formatUsdc(e.paidToPayer)} to the payer. Closed.`;
     case "Cancelled":
-      return "The payer cancelled it before depositing. No money ever moved.";
+      return "Cancelled before any deposit. No money ever moved.";
   }
-}
-
-export interface ProgressStep {
-  label: string;
-  state: "done" | "current" | "todo";
-  /** Violet mark for the dispute step. */
-  dispute?: boolean;
-}
-
-/** Created → Funded → final (Cancelled: Created → Cancelled). */
-export function progressSteps(status: Status): ProgressStep[] {
-  if (status === "Cancelled") {
-    return [
-      { label: "Created", state: "done" },
-      { label: "Cancelled", state: "current" },
-    ];
-  }
-  const index = status === "Created" ? 0 : status === "Funded" || status === "Disputed" ? 1 : 2;
-  const third = status === "Released" || status === "Refunded" || status === "Split" ? status : "Released or refunded";
-  const labels = ["Created", status === "Disputed" ? "In dispute" : "Funded", third];
-  return labels.map((label, i) => ({
-    label,
-    state: i < index ? "done" : i === index ? "current" : "todo",
-    dispute: i === 1 && status === "Disputed",
-  }));
 }
 
 export type Tab = "paying" | "receiving" | "arbiter";
-
-export interface RowHint {
-  text: string;
-  needsYou: boolean;
-}
-
-/** The hint on a dashboard row (WEB_PLAN §3.3). */
-export function rowHint(view: EscrowView, tab: Tab): RowHint {
-  const e = view.escrow;
-  const past = view.deadlinePassed;
-  const by = closedByRole(e);
-  if (tab === "paying") {
-    switch (e.status) {
-      case "Created":
-        return past ? { text: "Too late to deposit. Cancel it", needsYou: true } : { text: "Deposit to lock it", needsYou: true };
-      case "Funded":
-        return past
-          ? { text: "Deadline passed. Release or reclaim", needsYou: true }
-          : { text: "Release when the work is in", needsYou: true };
-      case "Disputed":
-        return { text: "In dispute. The arbiter decides", needsYou: false };
-      case "Released":
-        return { text: "Paid out", needsYou: false };
-      case "Refunded":
-        return {
-          text: by === "recipient" ? "Came back to you" : by === "payer" ? "You took it back" : "The arbiter returned it",
-          needsYou: false,
-        };
-      case "Split":
-        return { text: "Split by the arbiter", needsYou: false };
-      case "Cancelled":
-        return { text: "Cancelled", needsYou: false };
-    }
-  }
-  if (tab === "receiving") {
-    switch (e.status) {
-      case "Created":
-        return { text: "Waiting on the payer", needsYou: false };
-      case "Funded":
-        return past
-          ? { text: "Deadline passed. The payer can take it back", needsYou: false }
-          : { text: "Locked. Safe to start work", needsYou: true };
-      case "Disputed":
-        return { text: "In dispute. The arbiter decides", needsYou: false };
-      case "Released":
-        return { text: "You got paid", needsYou: false };
-      case "Refunded":
-        return {
-          text: by === "recipient" ? "You sent it back" : by === "payer" ? "The payer took it back" : "The arbiter returned it",
-          needsYou: false,
-        };
-      case "Split":
-        return { text: "Split by the arbiter", needsYou: false };
-      case "Cancelled":
-        return { text: "Cancelled", needsYou: false };
-    }
-  }
-  switch (e.status) {
-    case "Disputed":
-      return { text: "Your decision", needsYou: true };
-    case "Created":
-    case "Funded":
-      return { text: "No dispute", needsYou: false };
-    default:
-      return { text: "Closed", needsYou: false };
-  }
-}

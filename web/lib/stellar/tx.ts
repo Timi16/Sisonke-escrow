@@ -55,7 +55,7 @@ async function loadSource(source: string) {
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status;
     if (status === undefined && !/not found/i.test(String((err as Error)?.message))) throw err;
-    throw new SisonkeError("No XLM yet", "This wallet has no XLM yet. Get test XLM in setup.", { label: "Get test XLM", href: "/setup" });
+    throw new SisonkeError("No XLM yet", "This wallet has no XLM yet. Get test XLM in Test funds.", { label: "Get test XLM", href: "/setup" });
   }
 }
 
@@ -292,7 +292,7 @@ export function precheck(c: PrecheckCtx): SisonkeError | null {
     return new SisonkeError("Wrong network", "Switch your wallet to Testnet to sign. Nothing was sent.");
   }
   if (c.readiness && !c.readiness.exists && c.method !== "migrate") {
-    return new SisonkeError("No XLM yet", "This wallet has no XLM yet. Get test XLM in setup.", { label: "Get test XLM", href: "/setup" });
+    return new SisonkeError("No XLM yet", "This wallet has no XLM yet. Get test XLM in Test funds.", { label: "Get test XLM", href: "/setup" });
   }
   if ((c.method === "fund" || c.method === "create_and_fund") && c.readiness && c.amount !== undefined) {
     const line = c.readiness.usdc;

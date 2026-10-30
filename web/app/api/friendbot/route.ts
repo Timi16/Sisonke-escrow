@@ -36,7 +36,7 @@ function sameOrigin(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (config.network !== "testnet") return apiError(400, "not_testnet", "Friendbot only exists on Testnet.");
-  if (!sameOrigin(req)) return apiError(403, "forbidden", "Use the Sisonke setup page to get test XLM.");
+  if (!sameOrigin(req)) return apiError(403, "forbidden", "Use the Sisonke Test funds page to get test XLM.");
   const body = (await req.json().catch(() => null)) as { address?: unknown } | null;
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   if (!isAccount(address)) return apiError(400, "bad_address", "Expected a Stellar account (G…).");

@@ -3,9 +3,9 @@ import { DISPUTE_CUTOFF, MAX_DEADLINE_MARGIN, MAX_DURATION, MIN_DEADLINE_LEAD } 
 
 export const PRESETS = [
   { id: "3d", label: "3 days", days: 3 },
-  { id: "7d", label: "7 days", days: 7 },
-  { id: "14d", label: "14 days", days: 14 },
-  { id: "30d", label: "30 days", days: 30 },
+  { id: "7d", label: "1 week", days: 7 },
+  { id: "14d", label: "2 weeks", days: 14 },
+  { id: "30d", label: "1 month", days: 30 },
 ] as const;
 export type PresetId = (typeof PRESETS)[number]["id"] | "custom";
 export const DEFAULT_PRESET: PresetId = "7d";

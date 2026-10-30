@@ -4,18 +4,18 @@ import { explorer } from "@/lib/config";
 import { formatWhen } from "@/lib/format";
 import { formatUsdc } from "@/lib/sisonke/amount";
 import type { Escrow, EscrowAction, EscrowEvent, EscrowHistory } from "@/lib/sisonke/types";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Ph } from "@/components/ui/Skeleton";
 import { TxHash } from "@/components/ui/TxHash";
 
 const DOT: Record<EscrowAction, string> = {
-  created: "border-ink bg-card",
-  funded: "border-ink bg-lime",
-  released: "border-ink bg-ink",
-  refunded: "border-ink bg-sand",
-  reclaimed: "border-ink bg-sand",
-  disputed: "border-ink bg-violet",
-  resolved: "border-ink bg-[linear-gradient(90deg,var(--color-lime)_50%,var(--color-card)_50%)]",
-  cancelled: "border-line-strong bg-card",
+  created: "border-2 border-ink bg-card",
+  funded: "bg-lime",
+  released: "bg-ink",
+  refunded: "bg-line",
+  reclaimed: "bg-line",
+  disputed: "bg-violet",
+  resolved: "border-2 border-violet bg-card",
+  cancelled: "border-2 border-line-strong bg-card",
 };
 
 /** Titles use the escrow record for amounts, never the event data (INTEGRATION §4). */
@@ -48,7 +48,7 @@ function signedBy(ev: EscrowEvent, e: Escrow, me: string | null): string {
   return "Payer signed";
 }
 
-/** Events with transaction links, oldest first, plus the retention fallback note. */
+/** "Transactions": events with explorer links, oldest first, plus the retention note. */
 export function ActivityList({
   escrow,
   history,
@@ -77,15 +77,15 @@ export function ActivityList({
     events.push(pending);
   }
   return (
-    <section aria-labelledby="activity-h" className={cn("rise flex flex-col gap-1 rounded-tile border border-line bg-card p-[18px] min-[720px]:rounded-card min-[720px]:px-[26px] min-[720px]:py-6", className)} style={{ animationDelay: "280ms" }}>
-      <h2 id="activity-h" className="m-0 mb-2 text-sm font-bold min-[720px]:text-base">
-        Activity
+    <section aria-labelledby="activity-h" className={cn("rise flex flex-col gap-3 rounded-panel border border-line bg-card p-[22px]", className)} style={{ animationDelay: "200ms" }}>
+      <h2 id="activity-h" className="m-0 font-serif text-[22px] font-normal leading-none">
+        Transactions
       </h2>
       {loading && !history ? (
         <div className="flex flex-col gap-3 border-t border-sand pt-3.5">
-          <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-5 w-3/5" />
+          <Ph moving className="h-4 w-2/3" />
+          <Ph moving className="h-3 w-1/2" />
+          <Ph moving className="h-4 w-3/5" />
         </div>
       ) : failed && !history ? (
         <p className="m-0 flex flex-wrap items-center gap-3 border-t border-sand pt-3.5 text-sm text-muted">
@@ -97,21 +97,21 @@ export function ActivityList({
       ) : (
         <ol className="m-0 flex list-none flex-col p-0">
           {events.map((ev) => (
-            <li key={ev.id} className="slidein flex gap-3 border-t border-sand py-3 min-[720px]:gap-3.5 min-[720px]:py-3.5">
-              <span aria-hidden="true" className={cn("mt-[5px] size-2.5 shrink-0 rounded-pill border-2 min-[720px]:size-3", DOT[ev.action])} />
-              <div className="flex min-w-0 flex-1 flex-wrap justify-between gap-x-4 gap-y-1">
-                <div className="flex flex-col gap-[3px]">
-                  <span className="text-sm font-bold min-[720px]:text-[15px]">{title(ev, escrow)}</span>
-                  <span className="text-xs text-muted min-[720px]:text-[13px]">
-                    {signedBy(ev, escrow, me)}, {formatWhen(ev.at)}
+            <li key={ev.id} className={cn("flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand py-3.5", ev.id.startsWith("pending:") && "popin")}>
+              <div className="flex min-w-0 items-center gap-3">
+                <span aria-hidden="true" className={cn("size-3 shrink-0 rounded-pill", DOT[ev.action])} />
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm font-bold">{title(ev, escrow)}</span>
+                  <span className="text-[13px] text-muted">
+                    {signedBy(ev, escrow, me)} · {formatWhen(ev.at)}
                   </span>
                 </div>
-                {ev.txHash ? (
-                  <TxHash hash={ev.txHash} className="self-start text-xs min-[720px]:text-[13px]" />
-                ) : (
-                  <span className="self-start text-xs text-muted">From the contract record</span>
-                )}
               </div>
+              {ev.txHash ? (
+                <TxHash hash={ev.txHash} className="inline-flex min-h-10 items-center" />
+              ) : (
+                <span className="text-xs text-muted">From the contract record</span>
+              )}
             </li>
           ))}
         </ol>

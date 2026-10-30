@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { SetupScreen } from "./SetupScreen";
 
 export const metadata: Metadata = {
-  title: "Wallet setup",
-  description: "Connect a Stellar wallet, get test XLM, add a USDC trustline and get test USDC: four steps, once.",
+  title: "Test funds",
+  description: "Free Testnet XLM and USDC: connect a wallet, get test XLM, enable USDC and swap on the Testnet DEX.",
 };
 
 export default function SetupPage() {

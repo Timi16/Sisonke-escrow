@@ -1,43 +1,107 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { config } from "@/lib/config";
-import { shortAddress } from "@/lib/format";
 import { useReadiness } from "@/lib/hooks/queries";
 import { balanceStroops, formatUsdc, toDecimalString } from "@/lib/sisonke/amount";
-import { toSisonkeError, type FriendlyError } from "@/lib/sisonke/errors";
-import { findUsdcPath, type UsdcPath } from "@/lib/stellar/horizon";
-import { SetupStep, StepButton, type StepState } from "@/components/setup/SetupStep";
-import { WalletPicker } from "@/components/setup/WalletPicker";
+import { toSisonkeError } from "@/lib/sisonke/errors";
+import { SWAP_CHOICES, planSwap, usdcAmount, type SwapChoice } from "@/lib/sisonke/funds";
+import { findUsdcPath } from "@/lib/stellar/horizon";
+import { PageHead } from "@/components/app/PageHead";
 import { TxError } from "@/components/tx/TxError";
 import { useTx } from "@/components/tx/TxProvider";
-import { CopyButton } from "@/components/ui/CopyButton";
-import { ExternalIcon } from "@/components/ui/icons";
+import { ArrowIcon, CheckIcon, InkSpinner } from "@/components/ui/icons";
 import { Notice } from "@/components/ui/Notice";
 import { WALLETS, useWallet } from "@/components/wallet/WalletProvider";
 
-const NOTES = ["Let's go", "Nice start", "Halfway there", "One more", "All set"];
 const MIN_XLM = 20_000_000n; // 2 XLM
-const SWAP_USDC = "10.0000000";
-const MAX_XLM = 1_000_000_000n; // 100 XLM
+type Look = "done" | "current" | "locked";
 
-type Quote = { kind: "loading" } | { kind: "ready"; path: UsdcPath; quote: bigint; sendMax: bigint } | { kind: "none" } | { kind: "tooDear"; quote: bigint } | { kind: "error"; message: string };
+/** Whole XLM, grouped: "9,998.70". */
+const xlmText = (stroops: bigint) => formatUsdc((stroops / 100_000n) * 100_000n);
 
-const statusOf = (state: StepState, busyText = "Working…") =>
-  state === "done" ? "Done" : state === "locked" ? "Waiting on the step above" : state === "busy" ? busyText : "Up next";
+function Step({
+  n,
+  look,
+  title,
+  text,
+  extra,
+  action,
+  busy,
+  doneText,
+}: {
+  n: number;
+  look: Look;
+  title: string;
+  text: ReactNode;
+  extra?: ReactNode;
+  action?: { label: string; onClick: () => void; disabled?: boolean };
+  busy?: string | null;
+  doneText: ReactNode;
+}) {
+  const done = look === "done";
+  const current = look === "current";
+  return (
+    <li
+      aria-labelledby={`step-${n}`}
+      className={cn(
+        "flex flex-wrap items-center gap-x-5 gap-y-3.5 rounded-[24px] px-[22px] py-5 transition-opacity duration-300",
+        done ? "bg-sand" : current ? "border-2 border-ink bg-card shadow-action" : "border border-line bg-card opacity-55",
+      )}
+    >
+      <span
+        className={cn(
+          "display flex size-12 shrink-0 items-center justify-center rounded-pill text-[17px]",
+          done ? "bg-lime text-ink" : current ? "bg-ink text-lime" : "border-[1.5px] border-switch-off text-faint",
+        )}
+      >
+        {done ? <CheckIcon size={22} className="pop-strong" /> : n}
+        <span className="sr-only">{done ? ` Step ${n} done` : current ? ` Step ${n}, up next` : ` Step ${n}, waiting on the step above`}</span>
+      </span>
+      <div className="flex min-w-0 flex-[999_1_260px] flex-col gap-1">
+        <h2 id={`step-${n}`} className="m-0 text-base font-extrabold">
+          {title}
+        </h2>
+        <span className="text-sm leading-normal text-muted">{text}</span>
+        {extra}
+      </div>
+      {done ? (
+        <span className="flex-[1_1_180px] text-right text-sm font-bold text-ok">{doneText}</span>
+      ) : busy ? (
+        <span aria-live="polite" className="inline-flex min-h-[52px] flex-[1_1_180px] items-center justify-center gap-2.5 rounded-pill bg-ink px-[22px] text-sm font-bold text-on-ink">
+          <InkSpinner size={18} />
+          {busy}
+        </span>
+      ) : current && action ? (
+        <button
+          type="button"
+          onClick={action.disabled ? undefined : action.onClick}
+          aria-disabled={action.disabled || undefined}
+          className={cn("lift-app min-h-[52px] flex-[1_1_180px] rounded-pill border-0 bg-ink px-[22px] text-sm font-extrabold text-on-ink", action.disabled && "cursor-not-allowed opacity-60")}
+        >
+          {action.label}
+        </button>
+      ) : null}
+    </li>
+  );
+}
 
+/** Free Testnet XLM and USDC in four steps (docs/design/app test-funds board). */
 export function SetupScreen() {
   const { address, walletName, onTestnet, connecting, openConnect } = useWallet();
   const tx = useTx();
   const [friendbot, setFriendbot] = useState<"idle" | "busy" | "funded" | "error">("idle");
   const [friendbotError, setFriendbotError] = useState<string | null>(null);
-  const [quote, setQuote] = useState<Quote | null>(null);
   const [usdcCheck, setUsdcCheck] = useState<"idle" | "checking" | "none">("idle");
+  const [choice, setChoice] = useState<SwapChoice>(100);
+  const [more, setMore] = useState(false);
   const trustTx = tx.at("setup:trustline");
   const swapTx = tx.at("setup:swap");
-  const waiting = friendbot === "busy" || (!!trustTx && trustTx.phase !== "done" && trustTx.phase !== "error");
-  const readiness = useReadiness(address, waiting);
+  const trustBusy = !!trustTx && trustTx.phase !== "done" && trustTx.phase !== "error";
+  const swapBusy = !!swapTx && swapTx.phase !== "done" && swapTx.phase !== "error";
+  const readiness = useReadiness(address, friendbot === "busy" || trustBusy);
   const r = readiness.data;
 
   const s1 = !!address && onTestnet !== false;
@@ -46,7 +110,17 @@ export function SetupScreen() {
   const s3 = s2 && !!r?.usdc && r.usdc.authorized;
   const usdc = balanceStroops(r?.usdc?.balance);
   const s4 = s3 && usdc > 0n;
-  const done = [s1, s2, s3, s4].filter(Boolean).length;
+  const swapOpen = s3 && (!s4 || more);
+
+  const quote = useQuery({
+    queryKey: ["usdcQuote", choice],
+    queryFn: () => findUsdcPath(usdcAmount(choice)),
+    enabled: swapOpen && !swapBusy,
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const path = quote.data ?? null;
+  const plan = path ? planSwap(balanceStroops(path.sourceAmount), choice, xlm) : null;
 
   async function getXlm() {
     if (!address) return;
@@ -73,29 +147,17 @@ export function SetupScreen() {
     }
   }
 
-  async function quoteSwap() {
-    setQuote({ kind: "loading" });
-    try {
-      const path = await findUsdcPath(SWAP_USDC);
-      if (!path) return setQuote({ kind: "none" });
-      const q = balanceStroops(path.sourceAmount);
-      if (q === 0n || q > MAX_XLM) return setQuote({ kind: "tooDear", quote: q });
-      // Generous slippage: 3× the quote, never more than 100 XLM. Bigint stroops, no float maths.
-      const max = q * 3n < MAX_XLM ? q * 3n : MAX_XLM;
-      setQuote({ kind: "ready", path, quote: q, sendMax: max });
-    } catch (err) {
-      setQuote({ kind: "error", message: toSisonkeError(err).body });
-    }
-  }
-
   async function swap() {
-    if (quote?.kind !== "ready") return;
+    if (!path || plan?.kind !== "ok") return;
     const res = await tx.run({
       key: "setup:swap",
-      label: "Swap XLM for 10 USDC",
-      job: { kind: "swap", destAmount: SWAP_USDC, sendMax: toDecimalString(quote.sendMax), path: quote.path.path },
+      label: `Swap XLM for ${choice} USDC`,
+      job: { kind: "swap", destAmount: usdcAmount(choice), sendMax: toDecimalString(plan.sendMax), path: path.path },
     });
-    if (res) setQuote(null);
+    if (res) {
+      setMore(false);
+      void quote.refetch();
+    }
   }
 
   async function checkUsdc() {
@@ -104,288 +166,167 @@ export function SetupScreen() {
     setUsdcCheck(balanceStroops(next.data?.usdc?.balance) > 0n ? "idle" : "none");
   }
 
-  const st1: StepState = s1 ? "done" : connecting ? "busy" : "next";
-  const st2: StepState = s2 ? "done" : !s1 ? "locked" : friendbot === "busy" ? "busy" : "next";
-  const trustBusy = !!trustTx && trustTx.phase !== "done" && trustTx.phase !== "error";
-  const st3: StepState = s3 ? "done" : !s2 ? "locked" : trustBusy ? "busy" : "next";
-  const swapBusy = !!swapTx && swapTx.phase !== "done" && swapTx.phase !== "error";
-  const st4: StepState = s4 ? "done" : !s3 ? "locked" : swapBusy ? "busy" : "next";
+  const states = [s1, s2, s3, s4];
+  const firstOpen = states.findIndex((s) => !s);
+  const look = (i: number): Look => (states[i] && !(i === 3 && more) ? "done" : i === firstOpen || (i === 3 && more) ? "current" : "locked");
+  const signing = (t: typeof trustTx) => (t?.phase === "signing" ? "Approve in your wallet…" : t?.phase === "checking" ? "Checking…" : "Sending to Stellar…");
 
-  const trustLabel =
-    trustTx?.phase === "signing" ? "Approve in your wallet…" : trustTx?.phase === "submitting" || trustTx?.phase === "confirming" ? "Sending to Stellar…" : "Checking…";
+  const swapText: ReactNode =
+    quote.isFetching && !path ? (
+      "Asking the Testnet DEX for a price…"
+    ) : quote.isError ? (
+      toSisonkeError(quote.error).body
+    ) : quote.data === null ? (
+      "The Testnet DEX has no XLM → USDC offers right now. Use Circle’s faucet below."
+    ) : plan?.kind === "tooDear" ? (
+      `The DEX wants ${formatUsdc(plan.quote, { min: 0 })} XLM, more than 10 XLM per USDC. Pick less, or use Circle’s faucet.`
+    ) : plan?.kind === "short" ? (
+      `Costs ≈ ${xlmText(plan.quote)} XLM, more than the ${xlmText(plan.spendable)} XLM you can spend. Pick less.`
+    ) : plan ? (
+      <>
+        Costs ≈ <strong className="tabular text-ink">{xlmText(plan.quote)} XLM</strong> on the Testnet DEX.
+      </>
+    ) : (
+      "Buys test USDC with test XLM on the Testnet DEX."
+    );
+
+  const ready = s4 && !more;
+  const walletBusy = connecting ? `Waiting for ${WALLETS.find((w) => w.id === connecting)?.name ?? "your wallet"}…` : null;
 
   return (
-    <main id="main" className="mx-auto flex max-w-[1240px] flex-col gap-9 px-4 pt-12 pb-24 min-[720px]:px-6">
-      <div className="rise flex flex-wrap items-end justify-between gap-x-12 gap-y-6" style={{ animationDelay: "80ms" }}>
-        <div className="flex flex-col gap-[18px]">
-          <h1 className="display m-0 flex flex-col items-start leading-[0.95]">
-            <span className="inline-block bg-ink px-5 pt-3 pb-4 text-[clamp(40px,5vw,68px)] text-on-ink">Get set up.</span>
-          </h1>
-          <p className="m-0 max-w-[22em] font-serif text-[clamp(24px,2.6vw,32px)] leading-[1.2]">
-            Four quick steps, once. Then every escrow is two taps away.
-          </p>
-        </div>
-        <div className="flex flex-[0_1_320px] flex-col gap-2.5">
-          <div className="flex justify-between text-sm font-semibold">
-            <span>{done} of 4 done</span>
-            <span className="text-muted">{NOTES[done]}</span>
-          </div>
-          <div role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={done} aria-label="Setup progress" className="h-3 overflow-hidden rounded-pill bg-sand">
-            <div
-              className="h-full rounded-pill bg-lime shadow-[inset_0_0_0_1.5px_var(--color-ink)] transition-[width] duration-[600ms] ease-[var(--ease-rise)]"
-              style={{ width: `${done * 25}%` }}
-            />
-          </div>
-        </div>
-      </div>
+    <main id="main" className="flex flex-col gap-[22px]">
+      <PageHead title="Test funds" sub="Free Testnet XLM and USDC." />
+      <ol className="rise m-0 flex list-none flex-col gap-2.5 p-0" style={{ animationDelay: "140ms" }}>
+        <Step
+          n={1}
+          look={look(0)}
+          title="Connect a wallet"
+          text={
+            address && onTestnet === false ? (
+              <span className="font-semibold text-error">Your wallet is on another network. Switch it to Testnet, then reconnect.</span>
+            ) : (
+              "Varial, xBull, Lobstr, Albedo or Hana."
+            )
+          }
+          action={{ label: "Connect wallet", onClick: () => openConnect("money") }}
+          busy={walletBusy}
+          doneText={<>Connected{walletName ? ` with ${walletName}` : ""}</>}
+        />
+        <Step
+          n={2}
+          look={look(1)}
+          title="Get test XLM"
+          text={
+            <>
+              For network fees. No signature needed.
+              {friendbot === "error" && friendbotError && (
+                <span role="alert" className="mt-1 block font-semibold text-error">
+                  Friendbot didn&apos;t answer: {friendbotError}
+                </span>
+              )}
+            </>
+          }
+          action={{ label: "Get 10,000 XLM", onClick: () => void getXlm() }}
+          busy={friendbot === "busy" ? "Asking Friendbot…" : null}
+          doneText={friendbot === "funded" ? "10,000 XLM arrived" : `${xlmText(xlm)} XLM`}
+        />
+        <Step
+          n={3}
+          look={look(2)}
+          title="Enable USDC"
+          text={
+            <>
+              Adds a USDC trustline. One signature.
+              {r?.usdc && !r.usdc.authorized && (
+                <span className="mt-1 block font-semibold text-error">Circle has frozen USDC on this wallet, so it can&apos;t hold or send it. Use another wallet.</span>
+              )}
+            </>
+          }
+          extra={trustTx?.phase === "error" && trustTx.error ? <TxError error={trustTx.error} onRetry={() => tx.clear("setup:trustline")} /> : undefined}
+          action={
+            trustTx?.phase === "error" || (r?.usdc && !r.usdc.authorized)
+              ? undefined
+              : { label: "Add USDC", onClick: () => void tx.run({ key: "setup:trustline", label: "Add a USDC trustline", job: { kind: "trustline" } }), disabled: tx.busy }
+          }
+          busy={trustBusy ? signing(trustTx) : null}
+          doneText="USDC added"
+        />
+        <Step
+          n={4}
+          look={look(3)}
+          title="Swap XLM for USDC"
+          text={swapText}
+          extra={
+            <>
+              {swapOpen && (
+                <div role="group" aria-label="How much USDC" className="flex flex-wrap gap-2 pt-2">
+                  {SWAP_CHOICES.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      aria-pressed={a === choice}
+                      onClick={() => setChoice(a)}
+                      className={cn("min-h-10 rounded-pill border-[1.5px] px-3.5 text-sm font-bold", a === choice ? "border-ink bg-ink text-on-ink" : "border-line bg-ground text-ink")}
+                    >
+                      {a} USDC
+                    </button>
+                  ))}
+                </div>
+              )}
+              {swapTx?.phase === "error" && swapTx.error && (
+                <div className="pt-2">
+                  <TxError error={swapTx.error} onRetry={() => tx.clear("setup:swap")} />
+                </div>
+              )}
+              {s4 && !more && (
+                <button type="button" onClick={() => setMore(true)} className="min-h-9 self-start border-0 bg-transparent p-0 text-[13px] font-bold text-violet underline underline-offset-4">
+                  Get more
+                </button>
+              )}
+            </>
+          }
+          action={
+            swapTx?.phase === "error"
+              ? undefined
+              : { label: `Swap for ${choice} USDC`, onClick: () => void swap(), disabled: plan?.kind !== "ok" || tx.busy }
+          }
+          busy={swapBusy ? (swapTx?.phase === "signing" ? "Approve in your wallet…" : "Swapping…") : null}
+          doneText={`${formatUsdc(usdc)} USDC in your wallet`}
+        />
+      </ol>
 
-      {done === 4 && (
-        <div className="slidein flex flex-wrap items-center justify-between gap-x-8 gap-y-5 rounded-panel bg-ink px-8 py-7 text-on-ink">
+      {ready && (
+        <section className="popin flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-shell bg-ink p-[26px] text-on-ink">
           <div className="flex flex-col gap-1.5">
-            <span className="display text-[40px]">You&apos;re ready.</span>
-            <span className="text-base text-on-ink-muted">Your wallet can hold USDC and pay fees. Time to make a deal.</span>
+            <span className="display text-[29px] text-lime">You&apos;re ready.</span>
+            <span className="text-[15px] text-on-ink-muted">{formatUsdc(usdc)} USDC and XLM for fees.</span>
           </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Link href="/new" className="display lift inline-flex min-h-14 items-center rounded-pill bg-lime px-7 text-[22px] text-ink no-underline hover:text-ink">
-              Start an escrow
-            </Link>
-            <Link href="/dashboard" className="text-[15px] font-semibold text-on-ink underline-offset-[5px] hover:text-lime">
-              Go to my escrows
-            </Link>
-          </div>
-        </div>
+          <Link href="/new" className="display lift-app inline-flex min-h-[52px] items-center gap-2.5 rounded-pill bg-lime px-[30px] text-lg text-ink no-underline hover:text-ink">
+            Start an escrow
+            <ArrowIcon size={18} />
+          </Link>
+        </section>
       )}
 
-      <div className="flex flex-wrap items-start gap-7">
-        <ol className="m-0 flex min-w-0 flex-[999_1_560px] list-none flex-col gap-3.5 p-0">
-          <SetupStep n={1} title="Connect a wallet" state={st1} status={st1 === "busy" ? `Waiting for ${walletNameOf(connecting)}…` : statusOf(st1)} delay={140}>
-            {s1 ? (
-              <div className="slidein flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px]">
-                  <span>
-                    Connected with <strong>{walletName ?? "your wallet"}</strong>
-                  </span>
-                  <span className="rounded-pill bg-sand px-2.5 py-1 font-mono text-[13px]" title={address ?? undefined}>
-                    {shortAddress(address!)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={openConnect}
-                    className="min-h-11 border-0 bg-transparent px-1 text-sm font-semibold text-violet underline underline-offset-4"
-                  >
-                    Switch wallet
-                  </button>
-                </div>
-                {onTestnet === null && (
-                  <p className="m-0 text-[13px] text-muted">Your wallet doesn&apos;t tell apps its network. Make sure it&apos;s set to Testnet.</p>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="m-0 text-[15px] leading-[1.55] text-muted">
-                  Pick the Stellar wallet you use. Sisonke never sees your keys. You approve every step there.
-                </p>
-                {address && onTestnet === false && (
-                  <Notice tone="error" role="alert">
-                    Your wallet is on another network. Switch it to Testnet, then reconnect.
-                  </Notice>
-                )}
-                <WalletPicker variant="grid" />
-              </div>
-            )}
-          </SetupStep>
-
-          <SetupStep n={2} title="Get test XLM" state={st2} status={statusOf(st2)} delay={200}>
-            <p className="m-0 text-[15px] leading-[1.55] text-muted">XLM pays Stellar&apos;s tiny network fees. On Testnet, Friendbot gives it out for free.</p>
-            {s2 ? (
-              <span className="slidein text-[15px]">
-                {friendbot === "funded" ? (
-                  <>
-                    <strong>10,000 test XLM</strong> added. Plenty for fees.
-                  </>
-                ) : (
-                  <>
-                    Your wallet has <strong>{formatUsdc((xlm / 100_000n) * 100_000n)} test XLM</strong>. Plenty for fees.
-                  </>
-                )}
-              </span>
-            ) : (
-              <>
-                <StepButton onClick={() => void getXlm()} disabled={!s1} busy={friendbot === "busy"}>
-                  {friendbot === "busy" ? "Asking Friendbot…" : !s1 ? "Connect a wallet first" : "Get test XLM"}
-                </StepButton>
-                {friendbot === "error" && friendbotError && (
-                  <p role="alert" className="slidein m-0 text-[13px] font-semibold text-error">
-                    Friendbot didn&apos;t answer: {friendbotError}
-                  </p>
-                )}
-              </>
-            )}
-          </SetupStep>
-
-          <SetupStep n={3} title="Add a USDC trustline" state={st3} status={statusOf(st3)} delay={260}>
-            <p className="m-0 text-[15px] leading-[1.55] text-muted">
-              Stellar wallets only hold tokens you choose to trust. One signature lets yours hold USDC.
-            </p>
-            {s3 ? (
-              <span className="slidein text-[15px]">
-                <strong>USDC trustline</strong> added to your wallet.
-              </span>
-            ) : r?.usdc && !r.usdc.authorized ? (
-              <Notice tone="error">Circle has frozen USDC on this wallet, so it can&apos;t hold or send it. Use another wallet.</Notice>
-            ) : trustTx?.phase === "error" && trustTx.error ? (
-              <TxError error={trustTx.error} onRetry={() => tx.clear("setup:trustline")} />
-            ) : (
-              <StepButton
-                onClick={() => void tx.run({ key: "setup:trustline", label: "Add a USDC trustline", job: { kind: "trustline" } })}
-                disabled={!s2 || (tx.busy && !trustBusy)}
-                busy={trustBusy}
-              >
-                {trustBusy ? trustLabel : !s2 ? "Get XLM first" : "Add trustline"}
-              </StepButton>
-            )}
-          </SetupStep>
-
-          <SetupStep n={4} title="Get test USDC" state={st4} status={statusOf(st4, "Swapping on the Testnet DEX…")} delay={320}>
-            <p className="m-0 text-[15px] leading-[1.55] text-muted">
-              Circle&apos;s faucet sends free testnet USDC to your address. Choose Stellar there, paste your address, done.
-            </p>
-            {s4 ? (
-              <span className="slidein text-[15px]">
-                <strong>Test USDC</strong> is in your wallet.
-              </span>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-                  <a
-                    href={config.usdcFaucetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-disabled={!s3 || undefined}
-                    tabIndex={s3 ? undefined : -1}
-                    onClick={(e) => !s3 && e.preventDefault()}
-                    className={cn(
-                      "inline-flex min-h-12 items-center gap-2 rounded-pill px-[22px] text-[15px] font-bold no-underline",
-                      s3 ? "bg-lime text-ink hover:text-ink" : "pointer-events-none bg-sand text-faint",
-                    )}
-                  >
-                    Open Circle&apos;s faucet <ExternalIcon />
-                    <span className="sr-only">(opens in a new tab)</span>
-                  </a>
-                  {address && s3 && <CopyButton value={address} label="Copy my address" done="Address copied" variant="outline" size="md" />}
-                  <button
-                    type="button"
-                    onClick={() => s3 && void checkUsdc()}
-                    aria-disabled={!s3 || undefined}
-                    className={cn(
-                      "min-h-12 rounded-pill border-[1.5px] bg-transparent px-[18px] text-[15px] font-semibold",
-                      s3 ? "border-ink text-ink" : "cursor-not-allowed border-line-strong text-faint",
-                    )}
-                  >
-                    {usdcCheck === "checking" ? "Checking…" : "I've got my USDC"}
-                  </button>
-                </div>
-                {usdcCheck === "none" && (
-                  <p role="status" className="slidein m-0 text-[13px] font-semibold text-muted">
-                    No USDC yet. Circle&apos;s faucet can take a minute.
-                  </p>
-                )}
-                {s3 && (
-                  <div className="flex flex-col gap-2.5 border-t border-sand pt-3">
-                    <span className="text-sm text-muted">Or buy 10 test USDC with test XLM on the Testnet DEX:</span>
-                    {swapTx?.phase === "error" && swapTx.error ? (
-                      <SwapError error={swapTx.error} onRetry={() => tx.clear("setup:swap")} />
-                    ) : swapBusy ? (
-                      <StepButton onClick={() => undefined} busy>
-                        {swapTx?.phase === "signing" ? "Approve in your wallet…" : "Swapping on the Testnet DEX…"}
-                      </StepButton>
-                    ) : quote?.kind === "ready" ? (
-                      <div className="slidein flex flex-col gap-2.5">
-                        <p className="m-0 text-[15px]">
-                          About <strong className="tabular">{formatUsdc(quote.quote, { min: 0 })} XLM</strong>, at most{" "}
-                          <strong className="tabular">{formatUsdc(quote.sendMax, { min: 0 })} XLM</strong>.
-                        </p>
-                        <div className="flex flex-wrap gap-2.5">
-                          <StepButton onClick={() => void swap()} disabled={tx.busy}>
-                            Swap now
-                          </StepButton>
-                          <button type="button" onClick={() => setQuote(null)} className="min-h-12 rounded-pill border-[1.5px] border-ink bg-transparent px-[18px] text-[15px] font-semibold">
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => void quoteSwap()}
-                          aria-disabled={quote?.kind === "loading" || undefined}
-                          className="min-h-12 self-start rounded-pill border-[1.5px] border-ink bg-card px-[18px] text-[15px] font-bold"
-                        >
-                          {quote?.kind === "loading" ? "Asking the DEX…" : "Swap XLM for 10 USDC"}
-                        </button>
-                        {quote?.kind === "none" && (
-                          <p role="status" className="slidein m-0 text-[13px] font-semibold text-muted">
-                            The Testnet DEX has no XLM → USDC offers right now. Use Circle&apos;s faucet.
-                          </p>
-                        )}
-                        {quote?.kind === "tooDear" && (
-                          <p role="status" className="slidein m-0 text-[13px] font-semibold text-muted">
-                            The DEX wants {formatUsdc(quote.quote, { min: 0 })} XLM for 10 USDC, more than 100 XLM. Use Circle&apos;s faucet.
-                          </p>
-                        )}
-                        {quote?.kind === "error" && (
-                          <p role="alert" className="slidein m-0 text-[13px] font-semibold text-error">
-                            {quote.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </SetupStep>
-        </ol>
-
-        <aside aria-label="Help" className="rise flex min-w-0 flex-[1_1_340px] flex-col gap-3.5" style={{ animationDelay: "240ms" }}>
-          <div className="flex flex-col gap-4 rounded-[24px] bg-ink p-7 text-on-ink">
-            <h2 className="m-0 font-serif text-[34px] font-normal leading-[1.05]">Why four steps?</h2>
-            <ul className="m-0 flex list-none flex-col gap-3.5 p-0 text-[15px] leading-[1.55] text-on-ink-muted">
-              {[
-                "Your wallet is your account. Nothing to sign up for, nothing for us to lose.",
-                "XLM covers fees, and the trustline lets your wallet hold USDC.",
-                "Everything here is Testnet money. Free to get, and worth nothing outside testing.",
-              ].map((t) => (
-                <li key={t} className="flex gap-3">
-                  <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-pill bg-lime" />
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col gap-2 rounded-[24px] bg-sand px-6 py-[22px]">
-            <span className="text-base font-bold">Already set up?</span>
-            <span className="text-[15px] leading-normal text-muted">Skip straight to your escrows, or read exactly what the contract allows.</span>
-            <div className="flex flex-wrap gap-x-[18px] gap-y-1.5 pt-1 text-[15px] font-semibold">
-              <Link href="/dashboard" className="inline-flex min-h-11 items-center underline-offset-4">
-                My escrows
-              </Link>
-              <Link href="/rules" className="inline-flex min-h-11 items-center underline-offset-4">
-                The rules
-              </Link>
-            </div>
-          </div>
-        </aside>
+      <div className="flex flex-col gap-2 px-1 text-sm text-muted">
+        <p className="m-0">
+          Or use{" "}
+          <a href={config.usdcFaucetUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-ink underline-offset-4">
+            Circle&apos;s faucet
+          </a>{" "}
+          after step 3: choose Stellar, paste your address.{" "}
+          {s3 && !s4 && (
+            <button type="button" onClick={() => void checkUsdc()} className="min-h-9 border-0 bg-transparent p-0 font-bold text-violet underline underline-offset-4">
+              {usdcCheck === "checking" ? "Checking…" : "I've got my USDC"}
+            </button>
+          )}
+        </p>
+        {usdcCheck === "none" && (
+          <Notice role="status" tone="info">
+            No USDC yet. Circle&apos;s faucet can take a minute.
+          </Notice>
+        )}
       </div>
     </main>
   );
-}
-
-function SwapError({ error, onRetry }: { error: FriendlyError; onRetry: () => void }) {
-  return <TxError error={error} onRetry={onRetry} />;
-}
-
-function walletNameOf(id: string | null) {
-  return WALLETS.find((w) => w.id === id)?.name ?? "your wallet";
 }

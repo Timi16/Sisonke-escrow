@@ -11,22 +11,22 @@ import { actionsFor } from "@/lib/sisonke/actions";
 import { disputeWindowOpen } from "@/lib/sisonke/deadline";
 import { roleOf } from "@/lib/sisonke/role";
 import type { EscrowAction, EscrowEvent } from "@/lib/sisonke/types";
-import { Skeleton, ReadError } from "@/components/ui/Skeleton";
+import { Ph, ReadError } from "@/components/ui/Skeleton";
 import { useTx } from "@/components/tx/TxProvider";
 import { useWallet } from "@/components/wallet/WalletProvider";
-import { ActionPanel } from "@/components/escrow/ActionPanel";
 import { ActivityList } from "@/components/escrow/ActivityList";
 import { BlockedList } from "@/components/escrow/BlockedList";
-import { DetailsCard } from "@/components/escrow/DetailsCard";
-import { EscrowHeader } from "@/components/escrow/EscrowHeader";
+import { BackLink, EscrowHeader } from "@/components/escrow/EscrowHeader";
+import { FactsCard } from "@/components/escrow/FactsCard";
 import { MissingEscrow } from "@/components/escrow/MissingEscrow";
-import { MoneyStrip } from "@/components/escrow/MoneyStrip";
-import { PartiesCard } from "@/components/escrow/PartiesCard";
-import { ProgressSteps } from "@/components/escrow/ProgressSteps";
+import { MoneyCard } from "@/components/escrow/MoneyCard";
+import { MoveCard } from "@/components/escrow/MoveCard";
+import { WhoCan } from "@/components/escrow/WhoCan";
 
 function Main({ children }: { children: ReactNode }) {
   return (
-    <main id="main" className="mx-auto flex max-w-[1240px] flex-col gap-3.5 px-3.5 pt-2.5 pb-10 min-[720px]:gap-6 min-[720px]:px-6 min-[720px]:pt-9 min-[720px]:pb-24">
+    <main id="main" className="flex flex-col gap-[22px]">
+      <BackLink />
       {children}
     </main>
   );
@@ -117,11 +117,10 @@ function Escrow({ id }: { id: string }) {
     return (
       <Main>
         <EscrowHeader view={view} role={role} />
-        <section role="alert" className="rounded-card border-[1.5px] border-ink bg-card p-[26px] shadow-action">
-          <h2 className="m-0 font-serif text-[30px] font-normal leading-none">Unknown token</h2>
-          <p className="m-0 mt-3 text-[15px] leading-[1.55] text-muted">This escrow uses a token Sisonke doesn&apos;t recognise. Its amount isn&apos;t shown.</p>
+        <section role="alert" className="rounded-panel border-2 border-ink bg-card p-[22px] shadow-action">
+          <h2 className="m-0 font-serif text-2xl font-normal leading-none">Unknown token</h2>
+          <p className="m-0 mt-3 text-sm leading-normal text-muted">This escrow uses a token Sisonke doesn&apos;t recognise. Its amount and actions aren&apos;t shown.</p>
         </section>
-        <PartiesCard escrow={e} role={role} />
       </Main>
     );
   }
@@ -139,20 +138,11 @@ function Escrow({ id }: { id: string }) {
   return (
     <Main>
       <EscrowHeader view={view} role={role} />
-      <MoneyStrip view={view} role={role} />
-      <div className="flex flex-row-reverse flex-wrap items-start gap-3.5 min-[720px]:gap-6">
-        <aside aria-label="What you can do" className="rise flex min-w-0 flex-[1_1_360px] flex-col gap-3.5" style={{ animationDelay: "160ms" }}>
-          <ActionPanel view={view} role={role} actions={actions} info={contractInfo} ledgerNow={ledgerNow} />
-          {role !== "guest" && address && (
-            <BlockedList blocked={actions.blocked} escrow={e} role={role} me={address} onAccepted={() => void escrow.refetch()} />
-          )}
-        </aside>
-        <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-3.5 min-[720px]:gap-6">
-          <ProgressSteps status={e.status} className="order-2 min-[720px]:order-1" />
-          <PartiesCard escrow={e} role={role} className="order-1 min-[720px]:order-2" />
-          <DetailsCard view={view} role={role} ledgerNow={ledgerNow} className="order-4 min-[720px]:order-3" />
+      <MoneyCard view={view} role={role} />
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex min-w-0 flex-[999_1_440px] flex-col gap-3">
+          <FactsCard view={view} role={role} ledgerNow={ledgerNow} />
           <ActivityList
-            className="order-3 min-[720px]:order-4"
             escrow={e}
             history={history.data}
             loading={history.isPending}
@@ -162,37 +152,41 @@ function Escrow({ id }: { id: string }) {
             pending={pending}
           />
         </div>
+        <aside aria-label="What you can do" className="flex min-w-0 flex-[1_1_320px] flex-col gap-3">
+          <MoveCard view={view} role={role} actions={actions} info={contractInfo} ledgerNow={ledgerNow} />
+          <WhoCan escrow={e} role={role} />
+          {role !== "guest" && address && (
+            <BlockedList blocked={actions.blocked} escrow={e} role={role} me={address} onAccepted={() => void escrow.refetch()} />
+          )}
+        </aside>
       </div>
     </Main>
   );
 }
 
-/** Skeleton shaped like the final layout. */
+/** Skeleton shaped like the final layout, shimmering while the read is in flight. */
 export function EscrowSkeleton() {
   return (
     <Main>
       <span className="sr-only" role="status">
         Loading the escrow from Stellar…
       </span>
-      <Skeleton className="hidden h-5 w-48 min-[720px]:block" />
       <div className="flex flex-wrap items-center gap-3.5">
-        <Skeleton className="h-[38px] w-64 min-[720px]:h-16 min-[720px]:w-[420px]" />
-        <Skeleton className="h-9 w-32 rounded-pill" />
+        <Ph moving className="h-[38px] w-64" />
+        <Ph moving className="h-[34px] w-28 rounded-pill" />
       </div>
-      <Skeleton className="h-7 w-72" />
-      <Skeleton className="h-[220px] w-full rounded-panel" />
-      <div className="flex flex-row-reverse flex-wrap items-start gap-3.5 min-[720px]:gap-6">
-        <div className="flex flex-[1_1_360px] flex-col gap-3.5">
-          <Skeleton className="h-[300px] rounded-card" />
-          <Skeleton className="h-[160px] rounded-tile" />
+      <Ph moving className="h-6 w-56" />
+      <Ph moving className="h-[200px] w-full rounded-shell" />
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex min-w-0 flex-[999_1_440px] flex-col gap-3">
+          <Ph moving className="h-[220px] rounded-panel" />
+          <Ph moving className="h-[180px] rounded-panel" />
         </div>
-        <div className="flex flex-[999_1_560px] flex-col gap-6">
-          <Skeleton className="h-[120px] rounded-card" />
-          <Skeleton className="h-[220px] rounded-card" />
-          <Skeleton className="h-[180px] rounded-card" />
+        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-3">
+          <Ph moving className="h-[260px] rounded-panel" />
+          <Ph moving className="h-[200px] rounded-panel" />
         </div>
       </div>
     </Main>
   );
 }
-

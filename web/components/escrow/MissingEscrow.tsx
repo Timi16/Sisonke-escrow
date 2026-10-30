@@ -3,98 +3,76 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { parseEscrowQuery } from "@/lib/api";
 import { padId } from "@/lib/format";
-import { FieldError } from "@/components/ui/Field";
-
-/** The dashed two-ring mark with a "?" (Lookup board's not-found card). */
-function MissingMark() {
-  return (
-    <div
-      aria-hidden="true"
-      className="wobble flex size-28 shrink-0 items-center justify-center rounded-pill border-[1.5px] border-ink bg-card"
-    >
-      <svg width="64" height="64" viewBox="0 0 34 34">
-        <circle cx="12" cy="17" r="9" fill="none" stroke="var(--color-ink)" strokeWidth="2" strokeDasharray="3 3" />
-        <circle cx="22" cy="17" r="9" fill="none" stroke="var(--color-ink)" strokeWidth="2" strokeDasharray="3 3" />
-        <text x="17" y="21" textAnchor="middle" fontFamily="var(--font-anton), Impact, sans-serif" fontSize="11" fill="var(--color-violet)">
-          ?
-        </text>
-      </svg>
-    </div>
-  );
-}
 
 const CHECKS = [
-  "Is the number right? IDs are short, like 42.",
+  "Is the number right? Numbers are short, like 42.",
   "Ask the person who sent it for the full link.",
-  "It may not be created yet. It appears the moment the payer signs.",
+  "It may not exist yet. It appears the moment the payer signs.",
 ];
 
-/** "No escrow #0099" with the three checks. `id` is a validated decimal id, or any text when invalid. */
-export function NotFoundCard({ id, className }: { id: string; className?: string }) {
-  const label = /^\d{1,15}$/.test(id) ? padId(id) : "with that ID";
-  return (
-    <article aria-live="polite" className={`slide-up flex flex-wrap items-center gap-x-9 gap-y-6 rounded-panel bg-sand px-7 py-9 ${className ?? ""}`}>
-      <MissingMark />
-      <div className="flex flex-[1_1_320px] flex-col gap-3">
-        <h2 className="display m-0 text-[clamp(30px,3.4vw,44px)]">No escrow {label}</h2>
-        <p className="m-0 text-base leading-[1.55] text-muted">The Sisonke contract on Testnet has nothing with that ID. A few things to check:</p>
-        <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[15px] leading-normal">
-          {CHECKS.map((c) => (
-            <li key={c} className="flex gap-2.5">
-              <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-pill bg-violet" />
-              <span>{c}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </article>
-  );
-}
-
-/** Not found or invalid id on the escrow page: the card plus a small Find box. */
+/** No escrow with this id (or the id isn't one): the red card, three checks and a search box. */
 export function MissingEscrow({ id }: { id: string }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [invalid, setInvalid] = useState(false);
+  const label = /^\d{1,15}$/.test(id) ? padId(id) : "#";
   const go = () => {
     const parsed = parseEscrowQuery(q);
-    if (!parsed) {
-      setInvalid(true);
-      return;
-    }
+    if (!parsed) return setInvalid(true);
     setInvalid(false);
     router.push(`/find?id=${parsed}`);
   };
   return (
-    <div className="flex flex-col gap-6">
-      <NotFoundCard id={id} />
+    <div className="flex flex-col gap-[22px]">
+      <h1 className="sr-only">Escrow not found</h1>
+      <section aria-live="polite" className="popin flex flex-col gap-3.5 rounded-card bg-error-bg px-6 py-5">
+        <p className="m-0 flex flex-wrap items-center gap-3.5">
+          <span className="display text-[22px] text-error">{label}</span>
+          <span className="text-[15px] font-bold">No escrow with that number.</span>
+        </p>
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm leading-normal text-muted">
+          {CHECKS.map((c) => (
+            <li key={c} className="flex gap-2.5">
+              <span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-pill bg-error" />
+              <span>{c}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
       <form
-        className="flex flex-col gap-3 rounded-panel border border-line bg-card p-[26px]"
+        className="flex flex-wrap gap-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           go();
         }}
       >
-        <label htmlFor="missing-q" className="text-base font-bold">
+        <label htmlFor="missing-q" className="sr-only">
           Look up another escrow
         </label>
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex min-h-[52px] min-w-0 flex-[999_1_240px] items-center gap-2.5 rounded-pill border-[1.5px] border-ink bg-card px-5 focus-within:border-violet">
+          <span aria-hidden="true" className="display text-[21px] text-faint">
+            #
+          </span>
           <input
             id="missing-q"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="e.g. 42"
+            placeholder="0042"
             autoComplete="off"
             spellCheck={false}
             aria-invalid={invalid || undefined}
             aria-describedby={invalid ? "missing-q-err" : undefined}
-            className="min-h-[54px] min-w-0 flex-[1_1_220px] rounded-note border-[1.5px] border-line-strong bg-ground px-[18px] text-lg font-semibold text-ink outline-none focus:border-violet"
+            className="display min-w-0 flex-auto border-0 bg-transparent text-[21px] text-ink outline-none focus-visible:outline-none"
           />
-          <button type="submit" className="display lift min-h-[54px] rounded-pill border-[1.5px] border-ink bg-lime px-7 text-xl text-ink">
-            Find it
-          </button>
         </div>
-        <FieldError id="missing-q-err">{invalid ? "That doesn't look like an escrow ID. IDs are numbers, like 42, or a Sisonke escrow link." : null}</FieldError>
+        <button type="submit" className="lift-app min-h-[52px] flex-[1_1_140px] rounded-pill border-0 bg-ink px-7 text-[15px] font-extrabold text-on-ink">
+          Search
+        </button>
+        {invalid && (
+          <p id="missing-q-err" role="alert" className="m-0 w-full text-[13px] font-semibold text-error">
+            That doesn&apos;t look like an escrow number. Try 42, #0042 or a Sisonke escrow link.
+          </p>
+        )}
       </form>
     </div>
   );

@@ -1,5 +1,5 @@
-/** Action-card words: labels, descriptions, headings and intros (WEB_PLAN §6.3, §6.4). */
-import { shortAddress } from "../format";
+/** Escrow-page words: button labels, notes, the confirm step and the move card (docs/design/app). */
+import { formatDayName, shortAddress } from "../format";
 import type { ActionId } from "./actions";
 import { formatUsdc } from "./amount";
 import { isFinal, type Escrow, type Role } from "./types";
@@ -12,44 +12,73 @@ export function actionLabel(id: ActionId, e: Escrow): string {
     case "cancel":
       return "Cancel escrow";
     case "release":
-      return "Release to recipient";
+      return `Release ${x} USDC`;
     case "refund":
-      return "Refund to payer";
+      return "Refund payer";
     case "reclaim":
       return `Reclaim ${x} USDC`;
     case "dispute":
       return "Open a dispute";
     case "resolve":
-      return "Confirm decision";
+      return "Decide this split";
   }
 }
 
+/** The short line under each action button. */
 export function actionDescription(id: ActionId, e: Escrow): string {
   const x = formatUsdc(e.amount);
-  const disputed = e.status === "Disputed";
   switch (id) {
     case "fund":
-      return "Moves the USDC from your wallet into the contract. The recipient can then see it's locked.";
+      return `Moves ${x} USDC from your wallet into the contract.`;
     case "cancel":
-      return "Closes it for good. Nothing was deposited, so nothing moves.";
+      return "Closes it. Nothing was deposited, so nothing moves.";
     case "release":
-      return disputed
-        ? `Ends the dispute and sends all ${x} USDC to the recipient. This can't be undone.`
-        : `Sends all ${x} USDC to the recipient. This can't be undone.`;
+      return `Sends all ${x} USDC to ${shortAddress(e.recipient)}.`;
     case "refund":
-      return disputed
-        ? `Ends the dispute and sends all ${x} USDC back to the payer.`
-        : `Sends all ${x} USDC back to the payer. This can't be undone.`;
+      return `Returns all ${x} USDC to the payer.`;
     case "reclaim":
-      return `The deadline has passed. Sends all ${x} USDC back to you. This can't be undone.`;
+      return `The deadline has passed. Sends all ${x} USDC back to you.`;
     case "dispute":
-      return `Hands the decision to the arbiter ${e.arbiter ? shortAddress(e.arbiter) : ""}. Nothing moves now. After this the payer can't reclaim, and the arbiter decides how to split it.`.replace("  ", " ");
+      return "The arbiter decides. Nothing moves yet.";
     case "resolve":
-      return "Divides the USDC as set above. It's final.";
+      return "Splits the USDC as set above.";
   }
 }
 
-/** Labels in the "Not yours to do" list. */
+export interface Confirm {
+  question: string;
+  /** "This can't be undone." or what happens next. */
+  note: string;
+  yes: string;
+}
+
+/** The confirm step before the wallet opens. `recipientShare` only for resolve. */
+export function confirmOf(id: ActionId, e: Escrow, recipientShare = 0n): Confirm {
+  const x = formatUsdc(e.amount);
+  const final = "This can’t be undone.";
+  switch (id) {
+    case "fund":
+      return { question: `Deposit ${x} USDC into the contract?`, note: "It stays locked until released, refunded or reclaimed.", yes: "Yes, deposit" };
+    case "cancel":
+      return { question: "Cancel this escrow? Nothing was deposited.", note: final, yes: "Yes, cancel it" };
+    case "release":
+      return { question: `Send ${x} USDC to ${shortAddress(e.recipient)}?`, note: final, yes: "Yes, release it" };
+    case "refund":
+      return { question: `Refund ${x} USDC to ${shortAddress(e.payer)}?`, note: final, yes: "Yes, refund" };
+    case "reclaim":
+      return { question: `Take back ${x} USDC?`, note: final, yes: "Yes, reclaim it" };
+    case "dispute":
+      return { question: "Open a dispute? The arbiter will decide the split.", note: `${final} The payer can't reclaim after this.`, yes: "Yes, open it" };
+    case "resolve":
+      return {
+        question: `Split it ${formatUsdc(recipientShare)} to the recipient and ${formatUsdc(e.amount - recipientShare)} to the payer?`,
+        note: final,
+        yes: "Yes, split it",
+      };
+  }
+}
+
+/** Labels in the "Check other actions" list. */
 export const BLOCKED_LABEL: Record<ActionId, string> = {
   fund: "Deposit",
   release: "Release",
@@ -60,83 +89,38 @@ export const BLOCKED_LABEL: Record<ActionId, string> = {
   cancel: "Cancel",
 };
 
-/** Verbs for "Nothing is locked yet, so there's nothing to <verb>." */
-export const ACTION_VERB: Partial<Record<string, string>> = {
-  release: "release",
-  refund: "refund",
-  reclaim: "take back",
-  fund: "deposit",
-  cancel: "cancel",
-  dispute: "dispute",
-  resolve: "decide",
-};
-
 export interface Heading {
   heading: string;
   intro: string;
 }
 
-/** Heading and intro of the action card. */
+/** Title and line of the move card. */
 export function cardHeading(e: Escrow, role: Role, deadlinePassed: boolean): Heading {
-  const x = formatUsdc(e.amount);
-  const arb = e.arbiter ? shortAddress(e.arbiter) : "";
-  if (role === "guest") {
-    return {
-      heading: "Connect to act",
-      intro:
-        "Anyone with this link can watch the escrow. To deposit, release or refund, connect the wallet that's part of it. The contract will recognise it.",
-    };
-  }
-  if (isFinal(e.status)) {
-    return { heading: "Nothing left to do", intro: "This escrow is closed. The contract won't accept another release or refund." };
-  }
+  const day = formatDayName(e.deadline);
+  if (isFinal(e.status)) return { heading: "Closed for good", intro: "This escrow is settled." };
+  if (role === "guest") return { heading: "View only", intro: "Connect a party wallet to act." };
+  if (role === "stranger") return { heading: "View only", intro: "This wallet isn’t part of this escrow." };
   if (role === "payer") {
     if (e.status === "Created") {
       return deadlinePassed
-        ? {
-            heading: "Too late to deposit",
-            intro: "The deadline passed before this was funded, so the contract won't take a deposit. Cancel it to close it.",
-          }
-        : { heading: "Your move", intro: "Deposit the USDC so the recipient can see it's locked before they start." };
+        ? { heading: "Too late to deposit", intro: "The deadline passed before it was funded. Cancel it to close it." }
+        : { heading: "Your move", intro: "Deposit so the recipient can see the money is locked." };
     }
     if (e.status === "Funded") {
-      return {
-        heading: "Your move",
-        intro: deadlinePassed
-          ? "The deadline has passed. Release it if the work arrived, or take it back."
-          : "Release the money once you're happy with the work.",
-      };
+      return { heading: "Your move", intro: deadlinePassed ? "The deadline has passed. Release it, or take it back." : "Release when the work is delivered." };
     }
-    return {
-      heading: "In dispute",
-      intro: `The arbiter ${arb} decides how to split it. You can still release it all to the recipient.`,
-    };
+    return { heading: "In dispute", intro: "The arbiter decides. You can still release in full." };
   }
   if (role === "recipient") {
-    if (e.status === "Created") {
-      return { heading: "Waiting on the payer", intro: "Nothing is locked yet. Don't start work until the status says Funded." };
-    }
+    if (e.status === "Created") return { heading: "Waiting on the payer", intro: "Nothing is locked yet. Don’t start work until it says Locked." };
     if (e.status === "Funded") {
       return {
-        heading: "Your move",
-        intro:
-          "It's locked. Safe to start work. If the deal falls through, send the money back to the payer. Don't recognise this escrow? Refund it." +
-          (deadlinePassed ? " The deadline has passed, so the payer can now take it back." : ""),
+        heading: "Locked for you",
+        intro: deadlinePassed ? "The deadline has passed, so the payer can take it back." : "You’re paid when the payer releases. Don’t recognise it? Refund it.",
       };
     }
-    return { heading: "In dispute", intro: "The arbiter decides how to split it. You can still refund it all to the payer." };
+    return { heading: "In dispute", intro: "The arbiter decides. You can still refund in full." };
   }
-  if (role === "arbiter") {
-    if (e.status === "Disputed") {
-      return { heading: "Your decision", intro: `Divide the ${x} USDC between the payer and the recipient. It's final.` };
-    }
-    return {
-      heading: "Nothing for you yet",
-      intro: "As the arbiter you can act only if the payer or the recipient opens a dispute.",
-    };
-  }
-  return {
-    heading: "Just looking",
-    intro: `Only the payer and the recipient${e.arbiter ? ", and the arbiter in a dispute," : ""} can act on this escrow. The contract rejects anyone else's signature.`,
-  };
+  if (e.status === "Disputed") return { heading: "Decide the split", intro: "Choose the recipient’s share." };
+  return { heading: "Nothing to decide", intro: `You act only if a dispute opens before ${day}.` };
 }
