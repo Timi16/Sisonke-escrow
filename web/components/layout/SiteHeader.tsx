@@ -11,7 +11,7 @@ const VARIANTS = {
       { href: "#made-for", label: "Who it’s for" },
       { href: "#faq", label: "FAQ" },
     ],
-    open: "/setup",
+    open: "/overview",
     radius: "rounded-pill",
   },
   rules: {
@@ -20,7 +20,7 @@ const VARIANTS = {
       { href: "#rejects", label: "What gets rejected" },
       { href: "#proof", label: "Proof" },
     ],
-    open: "/dashboard",
+    open: "/overview",
     radius: "rounded-[32px]",
   },
 } as const;

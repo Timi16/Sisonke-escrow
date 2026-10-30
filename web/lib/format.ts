@@ -74,3 +74,13 @@ export function toLocalInput(sec: number): string {
 
 /** 5442580 → "5,442,580" without locale data. */
 export const groupInt = (n: number | bigint) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+/** "27 Oct" */
+export const formatShort = fmt({ day: "numeric", month: "short" });
+
+/** "Fri 6 Nov, 17:00" (local time). */
+export const formatEnds = (sec: number) =>
+  `${fmt({ weekday: "short", day: "numeric", month: "short" })(sec).replace(",", "")}, ${fmt({ hour: "2-digit", minute: "2-digit", hour12: false })(sec)}`;
+
+/** "Thu 22 Oct" */
+export const formatDayName = (sec: number) => fmt({ weekday: "short", day: "numeric", month: "short" })(sec).replace(",", "");

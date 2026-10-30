@@ -17,15 +17,15 @@ const PENDING = {
 };
 
 function Label({ children }: { children: string }) {
-  return <h2 className="mx-auto mt-8 w-full max-w-[1240px] px-4 font-mono text-[13px] font-semibold text-muted min-[720px]:px-6">{children}</h2>;
+  return <h2 className="m-0 mt-4 font-mono text-[13px] font-semibold text-muted">{children}</h2>;
 }
 
 /** Every contract notice state, for review and screenshots. Not served in production. */
 export default function NoticesPreview() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <main id="main" className="pb-24">
-      <h1 className="display mx-auto mt-9 w-full max-w-[1240px] px-4 text-[40px] min-[720px]:px-6">Contract notices</h1>
+    <main id="main" className="flex flex-col gap-3">
+      <h1 className="m-0 font-serif text-[clamp(28px,2.6vw,31px)] font-normal leading-none tracking-[-0.02em]">Contract notices</h1>
       <Label>UpgradeBanner · beforeEta, code published</Label>
       <UpgradeBanner state="beforeEta" pending={PENDING} ledgerNow={NOW} codePublished />
       <Label>UpgradeBanner · beforeEta, code not published</Label>

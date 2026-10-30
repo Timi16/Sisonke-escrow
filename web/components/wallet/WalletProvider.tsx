@@ -11,12 +11,15 @@ type KitClass = typeof Kit;
 /** The wallets offered, in order (WEB_PLAN §7). Ids match the kit's module productIds. */
 export const WALLETS = [
   // Freighter was renamed Varial; the kit still calls its module "freighter".
-  { id: "freighter", name: "Varial", note: "formerly Freighter", icon: "/wallets/varial.svg", url: "https://varialwallet.com" },
-  { id: "xbull", name: "xBull", icon: "/wallets/xbull.png", url: "https://xbull.app" },
-  { id: "lobstr", name: "Lobstr", icon: "/wallets/lobstr.png", url: "https://lobstr.co" },
-  { id: "albedo", name: "Albedo", icon: "/wallets/albedo.png", url: "https://albedo.link" },
-  { id: "hana", name: "Hana", icon: "/wallets/hana.png", url: "https://hanawallet.io" },
+  { id: "freighter", name: "Varial", note: "Formerly Freighter", icon: "/wallets/varial.svg", url: "https://varialwallet.com" },
+  { id: "xbull", name: "xBull", note: "Extension or web", icon: "/wallets/xbull.png", url: "https://xbull.app" },
+  { id: "lobstr", name: "Lobstr", note: "Signer extension", icon: "/wallets/lobstr.png", url: "https://lobstr.co" },
+  { id: "albedo", name: "Albedo", note: "Web, nothing to install", icon: "/wallets/albedo.png", url: "https://albedo.link" },
+  { id: "hana", name: "Hana", note: "Extension or mobile", icon: "/wallets/hana.png", url: "https://hanawallet.io" },
 ] as const;
+
+/** Where the connect modal was opened from: sets its one line of context. */
+export type ConnectReason = "main" | "new" | "escrows" | "act" | "money";
 
 export interface WalletOption {
   id: string;
@@ -34,6 +37,8 @@ interface WalletContext {
   address: string | null;
   walletId: string | null;
   walletName: string | null;
+  /** The connected wallet's official logo. */
+  walletIcon: string | null;
   /** The kit has loaded and restored any saved session. */
   ready: boolean;
   /** Id of the wallet being connected, while it is. */
@@ -47,10 +52,13 @@ interface WalletContext {
   disconnect: () => Promise<void>;
   sign: SignFn;
   refreshNetwork: () => Promise<void>;
-  /** The design's "Connect a wallet" modal. */
-  openConnect: () => void;
+  /** The design's "Connect a wallet" modal. Safe as an onClick handler. */
+  openConnect: (why?: ConnectReason | unknown) => void;
   closeConnect: () => void;
   connectOpen: boolean;
+  connectReason: ConnectReason;
+  /** The modal connected a wallet: it shows "Connected" until closed. */
+  connectDone: boolean;
   /** The last connection error, in plain words. */
   connectError: string | null;
 }
@@ -81,6 +89,8 @@ async function loadKit(): Promise<KitClass> {
 }
 
 const nameOf = (id: string | null) => WALLETS.find((w) => w.id === id)?.name ?? null;
+const iconOf = (id: string | null) => WALLETS.find((w) => w.id === id)?.icon ?? null;
+const REASONS: ConnectReason[] = ["main", "new", "escrows", "act", "money"];
 
 function selectedId(K: KitClass): string | null {
   try {
@@ -101,6 +111,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [supported, setSupported] = useState<ISupportedWallet[] | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [connectReason, setConnectReason] = useState<ConnectReason>("main");
+  const [connectDone, setConnectDone] = useState(false);
 
   const refreshNetwork = useCallback(async () => {
     if (!kit.current) return;
@@ -165,7 +177,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setAddress(picked);
         setWalletId(id);
         await refreshNetwork();
-        setConnectOpen(false);
+        setConnectDone(true);
         return picked;
       } catch (err) {
         const e = err as { code?: number; message?: string };
@@ -210,13 +222,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     () =>
       WALLETS.map((w) => {
         const s = supported?.find((x) => x.id === w.id);
-        return { id: w.id, name: w.name, note: "note" in w ? w.note : undefined, icon: w.icon, url: w.url, available: supported ? !!s?.isAvailable : null };
+        return { id: w.id, name: w.name, note: w.note, icon: w.icon, url: w.url, available: supported ? !!s?.isAvailable : null };
       }),
     [supported],
   );
 
-  const openConnect = useCallback(() => {
+  const openConnect = useCallback((why?: ConnectReason | unknown) => {
     setConnectError(null);
+    setConnectDone(false);
+    setConnectReason(typeof why === "string" && REASONS.includes(why as ConnectReason) ? (why as ConnectReason) : "main");
     setConnectOpen(true);
     kit.current
       ?.refreshSupportedWallets()
@@ -230,6 +244,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       address,
       walletId,
       walletName: nameOf(walletId),
+      walletIcon: iconOf(walletId),
       ready,
       connecting,
       onTestnet,
@@ -242,9 +257,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       openConnect,
       closeConnect,
       connectOpen,
+      connectReason,
+      connectDone,
       connectError,
     }),
-    [address, walletId, ready, connecting, onTestnet, walletPassphrase, wallets, connectWith, disconnect, sign, refreshNetwork, openConnect, closeConnect, connectOpen, connectError],
+    [address, walletId, ready, connecting, onTestnet, walletPassphrase, wallets, connectWith, disconnect, sign, refreshNetwork, openConnect, closeConnect, connectOpen, connectReason, connectDone, connectError],
   );
   return (
     <Ctx.Provider value={value}>

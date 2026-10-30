@@ -53,6 +53,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  // The old list page: the app home is Overview now, and the list lives at /escrows.
+  async redirects() {
+    return [{ source: "/dashboard", destination: "/overview", permanent: true }];
+  },
 };
 
 export default nextConfig;

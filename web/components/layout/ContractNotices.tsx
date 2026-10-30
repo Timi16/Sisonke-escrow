@@ -5,7 +5,7 @@
  * The banners are presentational so /dev/notices can render every state.
  */
 import { Networks } from "@stellar/stellar-sdk";
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { repoLink } from "@/lib/config";
 import { countdown, duration, formatWhenZone, shortHash } from "@/lib/format";
@@ -22,8 +22,12 @@ import { useWallet } from "@/components/wallet/WalletProvider";
 const GUIDANCE =
   "If you don't trust it, settle your escrows before then. As a payer before your deadline you can release to the recipient, or ask them to refund you. As a recipient you can refund the payer. In a dispute, ask the arbiter to decide. After an escrow's deadline, the payer can reclaim.";
 
+/** In the app shell the notices sit in the main column, without the site's page margins. */
+const Bare = createContext(false);
+
 function Wrap({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("slidein mx-auto mt-3 w-full max-w-[1240px] px-4 min-[720px]:px-6", className)}>{children}</div>;
+  const bare = useContext(Bare);
+  return <div className={cn(bare ? "slidein w-full" : "slidein mx-auto mt-3 w-full max-w-[1240px] px-4 min-[720px]:px-6", className)}>{children}</div>;
 }
 
 export function UpgradeBanner({
@@ -132,8 +136,9 @@ export function MigrationCard({ onRun, busy, canRun }: { onRun?: () => void; bus
 }
 
 export function MisconfiguredCard({ reason }: { reason: string }) {
+  const bare = useContext(Bare);
   return (
-    <main className="mx-auto w-full max-w-[1240px] px-4 pt-9 pb-24 min-[720px]:px-6">
+    <main id="main" className={bare ? "w-full" : "mx-auto w-full max-w-[1240px] px-4 pt-9 pb-24 min-[720px]:px-6"}>
       <section role="alert" className="flex max-w-[640px] flex-col gap-3.5 rounded-card border-[1.5px] border-error bg-card p-[26px] shadow-action">
         <span className="flex size-[52px] items-center justify-center rounded-pill border-[1.5px] border-error bg-error-bg">
           <BangIcon />
@@ -147,7 +152,15 @@ export function MisconfiguredCard({ reason }: { reason: string }) {
 }
 
 /** Live notices, then the page (or the Misconfigured card instead of it). */
-export function ContractNotices({ children }: { children: ReactNode }) {
+export function ContractNotices({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
+  return (
+    <Bare.Provider value={bare}>
+      <Notices>{children}</Notices>
+    </Bare.Provider>
+  );
+}
+
+function Notices({ children }: { children: ReactNode }) {
   const info = useInfo();
   const { address, onTestnet, walletPassphrase } = useWallet();
   const { ledgerNow } = useLedgerClock(1000);

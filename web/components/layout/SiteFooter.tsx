@@ -50,7 +50,7 @@ export function SiteFooter() {
           <div className="hidden flex-wrap gap-x-24 gap-y-10 min-[720px]:flex">
             <nav aria-label="Product" className="flex flex-col gap-3.5 text-[17px]">
               <span className="text-[15px] text-lilac">Product</span>
-              <Link href="/dashboard" className={linkCls}>
+              <Link href="/overview" className={linkCls}>
                 Open app
               </Link>
               <Link href="/new" className={linkCls}>

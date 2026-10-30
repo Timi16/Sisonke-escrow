@@ -35,6 +35,15 @@
   --color-error-bg: #FCEDE8;
   --color-header-glass: rgba(248, 244, 230, 0.94);
   --color-scrim: rgba(21, 17, 10, 0.55);
+  /* app shell (docs/design/app boards) */
+  --color-ok: #3F7A12;
+  --color-switch-off: #C9BFA6;
+  --color-on-ink-faint: #A79F8A;
+  --color-ink-well: #1C1710;
+  --color-ghost-ink: #2A241A;
+  --color-shimmer: #FBF8EE;
+  --color-row-hover: #FBF9F1;
+  --color-ticket-line: #D6CDB5;
 
   --font-sans: var(--font-figtree), "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-anton), Impact, sans-serif;
@@ -43,6 +52,7 @@
 
   --radius-pill: 999px;
   --radius-section: 36px;
+  --radius-shell: 30px;
   --radius-panel: 28px;
   --radius-card: 26px;
   --radius-tile: 22px;
@@ -73,6 +83,13 @@
   --shadow-demo: 0 40px 80px -40px rgba(0, 0, 0, 0.8);
   --shadow-proof: 0 30px 60px -36px rgba(21, 17, 10, 0.35);
   --shadow-float-sm: 0 20px 40px -20px rgba(21, 17, 10, 0.5);
+  /* app shell */
+  --shadow-ticket: 0 30px 60px -28px rgba(21, 17, 10, 0.6);
+  --shadow-pill-pop: 0 24px 50px -28px rgba(21, 17, 10, 0.6);
+  --shadow-dock: 0 24px 40px -20px rgba(21, 17, 10, 0.6);
+  --shadow-dialog: 0 40px 80px -30px rgba(21, 17, 10, 0.7);
+  --shadow-knob: 0 2px 6px rgba(21, 17, 10, 0.3);
+  --shadow-wallet-busy: 0 16px 30px -22px rgba(21, 17, 10, 0.7);
 
   --ease-rise: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-coin: cubic-bezier(0.65, 0, 0.35, 1);
@@ -228,6 +245,46 @@
   88% { opacity: 1; }
   100% { left: 0; opacity: 0; }
 }
+@keyframes popin {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes in-l {
+  from { transform: translateX(-34px); }
+  to { transform: none; }
+}
+@keyframes in-r {
+  from { transform: translateX(34px); }
+  to { transform: none; }
+}
+@keyframes lens {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes drift-l {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+@keyframes drift-r {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-5px); }
+}
+@keyframes spark {
+  0%, 100% { opacity: 0.25; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes glow-sm {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 245, 75, 0.6); }
+  50% { box-shadow: 0 0 0 7px rgba(210, 245, 75, 0); }
+}
 @keyframes travel {
   0% { left: 0; opacity: 0; }
   15% { opacity: 1; }
@@ -256,6 +313,58 @@
 .pulse-r { animation: to-right 2.8s var(--ease-travel) infinite; }
 .pulse-l { animation: to-left 2.8s var(--ease-travel) 1.4s infinite; }
 .travel { animation: travel 2.2s var(--ease-travel) infinite; }
+.popin { animation: popin 0.35s var(--ease-rise) both; }
+.fade { animation: fade 0.25s ease both; }
+.in-l { animation: in-l 0.6s cubic-bezier(0.5, 0, 0.2, 1) both; }
+.in-r { animation: in-r 0.6s cubic-bezier(0.5, 0, 0.2, 1) both; }
+.lens { transform-box: fill-box; transform-origin: center; animation: lens 0.45s cubic-bezier(0.2, 0.7, 0.3, 1.4) 0.55s both; }
+.drift-l { animation: drift-l 3.2s ease-in-out infinite; }
+.drift-r { animation: drift-r 3.2s ease-in-out infinite; }
+.spark { transform-box: fill-box; transform-origin: center; animation: spark 3.2s ease-in-out infinite; }
+.glow-sm { animation: glow-sm 2.2s ease-in-out infinite; }
+
+/* App classes sit in the components layer so utilities (rounded-pill, hidden…) win. */
+@layer components {
+/* Placeholder blocks. `.ghost` is static (nothing to load yet); `.shimmer`
+   moves while a read is in flight. Dark variants sit on ink panels. */
+.ghost { display: block; border-radius: 8px; background: var(--color-sand); }
+.ghost-ink { display: block; border-radius: 8px; background: var(--color-ghost-ink); }
+.shimmer {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--color-sand) 0%, var(--color-shimmer) 50%, var(--color-sand) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+.shimmer-ink {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--color-ghost-ink) 0%, var(--color-ink-line) 50%, var(--color-ghost-ink) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* App tables (Overview, Escrows): five columns, two on phones. */
+.trow {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 8px 14px;
+}
+@media (max-width: 880px) {
+  .trow { grid-template-columns: minmax(0, 1fr) auto; }
+  .thide { display: none !important; }
+}
+.row-link { transition: background-color 0.2s ease; }
+.row-link:hover { background: var(--color-row-hover); }
+.navi { transition: background-color 0.15s ease; }
+.navi:hover { background: var(--color-ink-2); }
+.wrow { transition: border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease; }
+.wrow:hover:not(:disabled) { border-color: var(--color-ink) !important; transform: translateX(3px); }
+.lift-app { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.lift-app:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift-setup); }
+.knob { transition: transform 0.2s ease; }
+}
 
 .lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
@@ -279,12 +388,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rise, .rise-lg, .rise-fast, .pop, .pop-strong, .slidein, .slide-up, .shake, .bob, .spin, .pulse, .glow,
-  .wobble, .stamp, .stamp-rules, .stamp-phone, .marquee, .marquee-phone, .pulse-r, .pulse-l, .travel {
+  .wobble, .stamp, .stamp-rules, .stamp-phone, .marquee, .marquee-phone, .pulse-r, .pulse-l, .travel,
+  .popin, .fade, .in-l, .in-r, .lens, .drift-l, .drift-r, .spark, .glow-sm, .shimmer, .shimmer-ink {
     animation: none !important;
   }
-  .lift:hover, .lift-setup:hover, .lift-row:hover, .lift-rules:hover, .cta:hover, .lift-row:hover .chev {
-    transform: none;
+  .lift:hover, .lift-setup:hover, .lift-row:hover, .lift-rules:hover, .cta:hover, .lift-row:hover .chev,
+  .lift-app:hover, .wrow:hover:not(:disabled) {
+    transform: none !important;
   }
+  .knob { transition: none; }
   .stamp, .stamp-rules, .stamp-phone { transform: rotate(-4deg); }
   .pulse-r, .pulse-l, .travel { display: none; }
   .coin-move, .step-bar, .tabs-thumb, .hero-card { transition: none; }

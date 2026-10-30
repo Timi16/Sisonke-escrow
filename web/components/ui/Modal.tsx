@@ -3,19 +3,31 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CloseIcon } from "./icons";
 
-/** Ground-coloured dialog: focus trap, Esc, restores focus, locks scroll. */
+/** The round close button for a dialog's header. */
+export function CloseButton({ onClick, label = "Close" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex size-11 shrink-0 items-center justify-center rounded-pill border-[1.5px] border-line bg-card text-ink"
+    >
+      <CloseIcon size={16} />
+    </button>
+  );
+}
+
+/** Ground-coloured dialog on a blurred scrim: focus trap, Esc, restores focus, locks scroll. */
 export function Modal({
   open,
   onClose,
   labelledBy,
   children,
-  closeLabel = "Close",
 }: {
   open: boolean;
   onClose: () => void;
   labelledBy: string;
   children: ReactNode;
-  closeLabel?: string;
 }) {
   const panel = useRef<HTMLDivElement>(null);
 
@@ -59,7 +71,7 @@ export function Modal({
   if (!open || typeof document === "undefined") return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-5"
+      className="fade fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-4 backdrop-blur-[6px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -69,16 +81,8 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className="pop relative flex max-h-[calc(100vh-40px)] w-[min(440px,100%)] flex-col gap-[18px] overflow-y-auto rounded-panel bg-ground p-[26px] shadow-modal"
+        className="popin relative flex max-h-[calc(100dvh-24px)] w-[min(480px,100%)] flex-col gap-[18px] overflow-y-auto rounded-shell bg-ground p-6 shadow-dialog"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={closeLabel}
-          className="absolute top-[26px] right-[26px] flex size-11 items-center justify-center rounded-pill border-[1.5px] border-line-strong bg-card"
-        >
-          <CloseIcon />
-        </button>
         {children}
       </div>
     </div>,
