@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sisonke overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Serif&amp;family=Figtree:wght@400..800&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#F8F4E6}
+*{box-sizing:border-box}
+a{color:#15110A}a:hover{color:#5A2DE0}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #5A2DE0;outline-offset:3px}
+.side a:focus-visible,.side button:focus-visible,.dock a:focus-visible,.dock button:focus-visible{outline-color:#D2F54B}
+::selection{background:#D2F54B;color:#15110A}
+input::placeholder{color:#8C8370}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes stamp{0%{opacity:0;transform:rotate(-3deg) scale(1.3)}60%{opacity:1;transform:rotate(-3deg) scale(.95)}100%{opacity:1;transform:rotate(-3deg) scale(1)}}
+.stamp{animation:stamp .7s cubic-bezier(.2,.7,.2,1) .35s both}
+@keyframes driftL{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@keyframes driftR{0%,100%{transform:translateX(0)}50%{transform:translateX(-5px)}}
+.driftL{animation:driftL 3.2s ease-in-out infinite}
+.driftR{animation:driftR 3.2s ease-in-out infinite}
+@keyframes spark{0%,100%{opacity:.25;transform:scale(.5)}50%{opacity:1;transform:scale(1)}}
+.spark{transform-box:fill-box;transform-origin:center;animation:spark 3.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:0}}
+.blink{animation:blink 1s steps(1) infinite}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.fade{animation:fade .25s ease both}
+@keyframes popin{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.popin{animation:popin .35s cubic-bezier(.2,.7,.2,1) both}
+@keyframes inL{from{transform:translateX(-34px)}to{transform:none}}
+@keyframes inR{from{transform:translateX(34px)}to{transform:none}}
+.inL{animation:inL .6s cubic-bezier(.5,0,.2,1) both}
+.inR{animation:inR .6s cubic-bezier(.5,0,.2,1) both}
+@keyframes lens{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:scale(1)}}
+.lens{transform-box:fill-box;transform-origin:center;animation:lens .45s cubic-bezier(.2,.7,.3,1.4) .55s both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(90,45,224,.45)}50%{box-shadow:0 0 0 6px rgba(90,45,224,0)}}
+.pulse{animation:pulse 1.8s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(210,245,75,.6)}50%{box-shadow:0 0 0 7px rgba(210,245,75,0)}}
+.glow{animation:glow 2.2s ease-in-out infinite}
+.lift{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.lift:hover{transform:translateY(-2px);box-shadow:0 18px 40px -24px rgba(21,17,10,.45)}
+.navi{transition:background-color .15s ease}
+.navi:hover{background:#221D14}
+.wrow{transition:border-color .2s ease,transform .2s ease,opacity .2s ease}
+.wrow:hover:not(:disabled){border-color:#15110A !important;transform:translateX(3px)}
+.row{transition:border-color .2s ease,background-color .2s ease}
+.row:hover{background:#FBF9F1}
+.gh{display:block;border-radius:8px;background:#EFEADA}
+.ghd{display:block;border-radius:8px;background:#2A241A}
+@keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}
+.sk{display:block;border-radius:8px;background:linear-gradient(90deg,#EFEADA 0%,#FBF8EE 50%,#EFEADA 100%);background-size:200% 100%;animation:sk 1.6s ease-in-out infinite}
+.skd{display:block;border-radius:8px;background:linear-gradient(90deg,#2A241A 0%,#3A3226 50%,#2A241A 100%);background-size:200% 100%;animation:sk 1.6s ease-in-out infinite}
+.trow{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,0.9fr);align-items:center;gap:8px 14px}
+
+.mtop,.dock{display:none}
+@media (max-width: 880px){
+.side,.dtop{display:none !important}
+.mtop{display:flex}
+.dock{display:grid}
+.main{padding:0 2px 112px !important}
+.trow{grid-template-columns:minmax(0,1fr) auto}.thide{display:none !important}.thead{display:none !important}
+}
+
+@media (prefers-reduced-motion: reduce){
+.rise,.stamp,.driftL,.driftR,.spark,.blink,.fade,.popin,.inL,.inR,.lens,.spin,.pulse,.glow,.sk,.skd{animation:none !important}
+.stamp{transform:rotate(-3deg)}
+.lift:hover,.wrow:hover:not(:disabled){transform:none !important}
+}
+</style>
+</helmet>
+<div id="top" style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; padding: 12px; background: #F8F4E6; font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif; color: #15110A;">
+<aside class="side rise" aria-label="Sisonke menu" style="flex: 0 0 264px; min-width: 0; display: flex; flex-direction: column; gap: 22px; padding: 20px 16px 16px; background: #15110A; color: #F8F4E6; border-radius: 30px;">
+  <a href="Setup.dc.html" aria-label="Sisonke app home" style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 10px 0 12px; background: #FFFFFF; border-radius: 999px; color: #15110A; text-decoration: none;"><svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg><span style="flex: 1 1 auto; font-size: 24.0px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span><span style="display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 10px; border-radius: 999px; background: #EFEADA; font-size: 12px; font-weight: 700; color: #15110A;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #5A2DE0;"></span>Testnet</span></a>
+  <a href="Create.dc.html" class="lift" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 18px; text-transform: uppercase; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path></svg>New escrow</a>
+  <nav aria-label="App" style="display: flex; flex-direction: column; gap: 4px;"><a href="Setup.dc.html" aria-current="page" class="navi" style="display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 12px; border-radius: 14px; background: #F8F4E6; color: #15110A; font-weight: 700; font-size: 14px; text-decoration: none;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 9.5L10 4l6.5 5.5V16a1 1 0 0 1-1 1H12v-4.5H8V17H4.5a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg><span style="flex: 1 1 auto;">Home</span></a><a href="Dashboard.dc.html" class="navi" style="display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 12px; border-radius: 14px; color: #F8F4E6; font-weight: 600; font-size: 14px; text-decoration: none;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="4" width="14" height="5" rx="1.5" stroke="currentColor" stroke-width="1.9"></rect><rect x="3" y="11" width="14" height="5" rx="1.5" stroke="currentColor" stroke-width="1.9"></rect></svg><span style="flex: 1 1 auto;">Escrows</span><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><span style="min-width: 24px; height: 22px; padding: 0 7px; border-radius: 999px; background: #D2F54B; color: #15110A; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;">3</span></sc-if></a><a href="Lookup.dc.html" class="navi" style="display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 12px; border-radius: 14px; color: #F8F4E6; font-weight: 600; font-size: 14px; text-decoration: none;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.9"></circle><path d="M13.2 13.2L17 17" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg><span style="flex: 1 1 auto;">Find an escrow</span></a></nav>
+  <nav aria-label="Testnet tools" style="display: flex; flex-direction: column; gap: 4px;">
+    <span style="padding: 0 12px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #A79F8A;">Testnet</span>
+    <a href="Money.dc.html" class="navi" style="display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 12px; border-radius: 14px; color: #F8F4E6; font-weight: 600; font-size: 14px; text-decoration: none;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.8s5 5.4 5 9.2a5 5 0 0 1-10 0c0-3.8 5-9.2 5-9.2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg><span style="flex: 1 1 auto;">Test funds</span></a>
+  </nav>
+  <div style="flex: 1 1 auto;"></div>
+  <div style="display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: #1C1710; border: 1px solid #3A3226; border-radius: 20px;">
+    <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #D2F54B;"></span>Practice mode</span>
+    <span style="font-size: 13px; color: #C9C1AD;">Test funds only</span>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 0 8px;">
+    <a href="Rules.dc.html" style="display: inline-flex; align-items: center; min-height: 36px; font-size: 13px; font-weight: 600; color: #C9C1AD; text-underline-offset: 4px;">Rules and proof</a>
+    <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 36px; font-size: 13px; font-weight: 600; color: #C9C1AD; text-underline-offset: 4px;">Website</a>
+  </div>
+</aside><main class="main" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 22px; padding: 10px 16px 48px;">
+<div class="mtop" style="position: relative; z-index: 30; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 14px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 999px;">
+  <a href="Setup.dc.html" aria-label="Sisonke app home" style="display: flex; align-items: center; gap: 8px; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 34 34" aria-hidden="true"><circle cx="12" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><circle cx="22" cy="17" r="9" fill="none" stroke="#15110A" stroke-width="2.4"></circle><path d="M17 9.52 A9 9 0 0 1 17 24.48 A9 9 0 0 1 17 9.52 Z" fill="#5A2DE0"></path></svg><span style="font-size: 20.0px; font-weight: 700; letter-spacing: -0.03em;">sisonke</span></a>
+  <div style="position: relative; flex: 0 0 auto;"><sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}"><button type="button" class="glow" onClick="{{openMain}}" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: #D2F54B; color: #15110A; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 7A2.5 2.5 0 0 1 6 4.5h8V7" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path><rect x="3.5" y="7" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.9"></rect><circle cx="13" cy="11.8" r="1.3" fill="currentColor"></circle></svg>Connect</button></sc-if><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><button type="button" onClick="{{toggleWallet}}" aria-expanded="{{walletOpenStr}}" aria-label="Your wallet" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 6px; border: 0; border-radius: 999px; background: #15110A; color: #F8F4E6; font: inherit; cursor: pointer;"><sc-if value="{{wl.varial.current}}" hint-placeholder-val="{{true}}"><img src="/_blob/19605ce1b4e7aafed2aa49ab96ce4483" alt="" width="32" height="32" style="flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.xbull.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/f912a131d5ef8f830512e33b12b26b32" alt="" width="32" height="32" style="flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.lobstr.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/e78a3dd6e431d0eca1e06108f4573234" alt="" width="32" height="32" style="flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.albedo.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/48cc57dd04e625fecd5eb644d1185a82" alt="" width="32" height="32" style="flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.hana.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/9712979492f74112039205ea87923759" alt="" width="32" height="32" style="flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px;">GCX4…7QPA</span></button></sc-if>
+<sc-if value="{{walletOpen}}" hint-placeholder-val="{{false}}">
+  <div class="popin" role="dialog" aria-label="Your wallet" style="position: absolute; right: 0; top: calc(100% + 10px); width: min(340px, calc(100vw - 32px)); z-index: 50; display: flex; flex-direction: column; padding: 16px; background: #F8F4E6; color: #15110A; border: 1.5px solid #15110A; border-radius: 22px; box-shadow: 0 30px 60px -28px rgba(21, 17, 10, 0.6);">
+    <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 12px;">
+      <sc-if value="{{wl.varial.current}}" hint-placeholder-val="{{true}}"><img src="/_blob/19605ce1b4e7aafed2aa49ab96ce4483" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.xbull.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/f912a131d5ef8f830512e33b12b26b32" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.lobstr.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/e78a3dd6e431d0eca1e06108f4573234" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.albedo.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/48cc57dd04e625fecd5eb644d1185a82" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.hana.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/9712979492f74112039205ea87923759" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+        <span style="display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700;">{{walletName}}<span class="pulse" style="width: 7px; height: 7px; border-radius: 999px; background: #5A2DE0;"></span></span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5A5446;">GCX4…7QPA</span>
+      </div>
+      <button type="button" onClick="{{copy}}" aria-label="Copy address" style="flex: 0 0 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1.5px solid #E6DFCB; border-radius: 12px; background: #FFFFFF; color: #15110A; cursor: pointer;">
+        <sc-if value="{{notCopied}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="7" y="7" width="9.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"></rect><path d="M13 7V5a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 4 5v6.5A1.5 1.5 0 0 0 5.5 13H7" stroke="currentColor" stroke-width="1.8"></path></svg></sc-if>
+        <sc-if value="{{copied}}" hint-placeholder-val="{{false}}"><span class="popin" style="display: flex; color: #5A2DE0;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></sc-if>
+      </button>
+    </div>
+    <div aria-hidden="true" style="display: flex; align-items: center; margin: 0 -17px;">
+      <span style="flex: 0 0 11px; height: 20px; border-radius: 0 999px 999px 0; background: #15110A;"></span>
+      <span style="flex: 1 1 auto; margin: 0 6px; border-top: 2px dashed #D6CDB5;"></span>
+      <span style="flex: 0 0 11px; height: 20px; border-radius: 999px 0 0 999px; background: #15110A;"></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px 0;">
+      <div style="display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 12px; font-weight: 600; color: #5A5446;">USDC</span><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; line-height: 1;">1,240.00</span></div>
+      <div style="display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 12px; font-weight: 600; color: #5A5446;">XLM for fees</span><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; line-height: 1;">9,998.70</span></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid #E6DFCB;">
+      <a href="https://stellar.expert/explorer/testnet" target="_blank" rel="noopener" style="display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7M14 11.5V15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>View on Stellar Expert</a>
+      <a href="Money.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.8s5 5.4 5 9.2a5 5 0 0 1-10 0c0-3.8 5-9.2 5-9.2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg>Top up test money</a>
+      <button type="button" onClick="{{disconnect}}" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; border: 0; background: transparent; color: #B5321A; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M6 5.6a6 6 0 1 0 8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Disconnect</button>
+    </div>
+  </div>
+</sc-if></div>
+</div>
+<div class="dtop rise" style="position: relative; z-index: 30; display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 20px; animation-delay: 60ms;">
+  <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #5A5446;"><a href="Setup.dc.html" style="color: #5A5446; text-decoration: none;">App</a><span aria-hidden="true">/</span><span style="color: #15110A;">Overview</span></div>
+  <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 12px;"><a href="Lookup.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 48px; flex: 0 1 280px; min-width: 0; padding: 0 8px 0 16px; border: 1.5px solid #E6DFCB; border-radius: 999px; background: #FFFFFF; color: #5A5446; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.9"></circle><path d="M13.2 13.2L17 17" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg><span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Search escrows</span><span style="padding: 4px 10px; border-radius: 999px; background: #EFEADA; color: #15110A; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px;">#0042</span></a><div style="position: relative; flex: 0 0 auto;"><sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}"><button type="button" class="lift glow" onClick="{{openMain}}" style="display: inline-flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 24px 0 20px; border: 0; border-radius: 999px; background: #D2F54B; color: #15110A; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 7A2.5 2.5 0 0 1 6 4.5h8V7" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path><rect x="3.5" y="7" width="13" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.9"></rect><circle cx="13" cy="11.8" r="1.3" fill="currentColor"></circle></svg>Connect wallet</button></sc-if><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><button type="button" onClick="{{toggleWallet}}" aria-expanded="{{walletOpenStr}}" style="display: inline-flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 16px 0 6px; border: 0; border-radius: 999px; background: #15110A; color: #F8F4E6; font: inherit; cursor: pointer;"><sc-if value="{{wl.varial.current}}" hint-placeholder-val="{{true}}"><img src="/_blob/19605ce1b4e7aafed2aa49ab96ce4483" alt="" width="38" height="38" style="flex: 0 0 38px; width: 38px; height: 38px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.xbull.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/f912a131d5ef8f830512e33b12b26b32" alt="" width="38" height="38" style="flex: 0 0 38px; width: 38px; height: 38px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.lobstr.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/e78a3dd6e431d0eca1e06108f4573234" alt="" width="38" height="38" style="flex: 0 0 38px; width: 38px; height: 38px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.albedo.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/48cc57dd04e625fecd5eb644d1185a82" alt="" width="38" height="38" style="flex: 0 0 38px; width: 38px; height: 38px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.hana.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/9712979492f74112039205ea87923759" alt="" width="38" height="38" style="flex: 0 0 38px; width: 38px; height: 38px; border-radius: 999px; object-fit: cover; background: #FFFFFF; "></sc-if><span style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; line-height: 1.1;"><span style="font-size: 13px; font-weight: 700;">{{walletName}}</span><span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #C9C1AD;">GCX4…7QPA</span></span><span style="display: inline-flex; align-items: baseline; gap: 4px; margin-left: 6px; padding-left: 12px; border-left: 1px solid #3A3226;"><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 16px;">1,240.00</span><span style="font-size: 11px; font-weight: 700; color: #C9C1AD;">USDC</span></span><span style="display: flex; color: #C9C1AD;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5.5 8l4.5 4.5L14.5 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></button></sc-if>
+<sc-if value="{{walletOpen}}" hint-placeholder-val="{{false}}">
+  <div class="popin" role="dialog" aria-label="Your wallet" style="position: absolute; right: 0; top: calc(100% + 10px); width: min(340px, calc(100vw - 32px)); z-index: 50; display: flex; flex-direction: column; padding: 16px; background: #F8F4E6; color: #15110A; border: 1.5px solid #15110A; border-radius: 22px; box-shadow: 0 30px 60px -28px rgba(21, 17, 10, 0.6);">
+    <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 12px;">
+      <sc-if value="{{wl.varial.current}}" hint-placeholder-val="{{true}}"><img src="/_blob/19605ce1b4e7aafed2aa49ab96ce4483" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.xbull.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/f912a131d5ef8f830512e33b12b26b32" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.lobstr.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/e78a3dd6e431d0eca1e06108f4573234" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.albedo.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/48cc57dd04e625fecd5eb644d1185a82" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if><sc-if value="{{wl.hana.current}}" hint-placeholder-val="{{false}}"><img src="/_blob/9712979492f74112039205ea87923759" alt="" width="40" height="40" style="flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #FFFFFF; "></sc-if>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+        <span style="display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700;">{{walletName}}<span class="pulse" style="width: 7px; height: 7px; border-radius: 999px; background: #5A2DE0;"></span></span>
+        <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5A5446;">GCX4…7QPA</span>
+      </div>
+      <button type="button" onClick="{{copy}}" aria-label="Copy address" style="flex: 0 0 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1.5px solid #E6DFCB; border-radius: 12px; background: #FFFFFF; color: #15110A; cursor: pointer;">
+        <sc-if value="{{notCopied}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="7" y="7" width="9.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"></rect><path d="M13 7V5a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 4 5v6.5A1.5 1.5 0 0 0 5.5 13H7" stroke="currentColor" stroke-width="1.8"></path></svg></sc-if>
+        <sc-if value="{{copied}}" hint-placeholder-val="{{false}}"><span class="popin" style="display: flex; color: #5A2DE0;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></sc-if>
+      </button>
+    </div>
+    <div aria-hidden="true" style="display: flex; align-items: center; margin: 0 -17px;">
+      <span style="flex: 0 0 11px; height: 20px; border-radius: 0 999px 999px 0; background: #15110A;"></span>
+      <span style="flex: 1 1 auto; margin: 0 6px; border-top: 2px dashed #D6CDB5;"></span>
+      <span style="flex: 0 0 11px; height: 20px; border-radius: 999px 0 0 999px; background: #15110A;"></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px 0;">
+      <div style="display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 12px; font-weight: 600; color: #5A5446;">USDC</span><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; line-height: 1;">1,240.00</span></div>
+      <div style="display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 12px; font-weight: 600; color: #5A5446;">XLM for fees</span><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 22px; line-height: 1;">9,998.70</span></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid #E6DFCB;">
+      <a href="https://stellar.expert/explorer/testnet" target="_blank" rel="noopener" style="display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7M14 11.5V15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>View on Stellar Expert</a>
+      <a href="Money.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.8s5 5.4 5 9.2a5 5 0 0 1-10 0c0-3.8 5-9.2 5-9.2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg>Top up test money</a>
+      <button type="button" onClick="{{disconnect}}" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; border: 0; background: transparent; color: #B5321A; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M6 5.6a6 6 0 1 0 8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Disconnect</button>
+    </div>
+  </div>
+</sc-if></div></div>
+</div>
+<section class="rise" style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding: 4px 4px 0; animation-delay: 60ms;">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(28px, 2.6vw, 31px); line-height: 1; letter-spacing: -0.02em;">Overview</h1>
+    
+  </div>
+  
+</section>
+<section class="rise" aria-label="Totals" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; animation-delay: 80ms;">
+  <div style="padding: 18px 20px; background: #15110A; color: #F8F4E6; display: flex; flex-direction: column; gap: 10px;"><span style="font-size: 13px; font-weight: 600; color: #C9C1AD;">Needs action</span><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: baseline; gap: 6px;"><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 28px; line-height: 1; color: #D2F54B;">{{st.need}}</span></span></sc-if><sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}"><span class="ghd" style="width: 48px; height: 30px;"></span></sc-if></div><div style="padding: 18px 20px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; display: flex; flex-direction: column; gap: 10px;"><span style="font-size: 13px; font-weight: 600; color: #5A5446;">You locked</span><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: baseline; gap: 6px;"><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 28px; line-height: 1;">{{st.out}}</span><span style="font-size: 12px; font-weight: 700; color: #5A5446;">USDC</span></span></sc-if><sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}"><span class="gh" style="width: 64%; height: 30px;"></span></sc-if></div><div style="padding: 18px 20px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; display: flex; flex-direction: column; gap: 10px;"><span style="font-size: 13px; font-weight: 600; color: #5A5446;">Locked for you</span><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: baseline; gap: 6px;"><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 28px; line-height: 1;">{{st.in}}</span><span style="font-size: 12px; font-weight: 700; color: #5A5446;">USDC</span></span></sc-if><sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}"><span class="gh" style="width: 64%; height: 30px;"></span></sc-if></div><div style="padding: 18px 20px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; display: flex; flex-direction: column; gap: 10px;"><span style="font-size: 13px; font-weight: 600; color: #5A5446;">Completed</span><sc-if value="{{connected}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: baseline; gap: 6px;"><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 28px; line-height: 1;">{{st.done}}</span></span></sc-if><sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}"><span class="gh" style="width: 48px; height: 30px;"></span></sc-if></div>
+</section>
+<sc-if value="{{notConnected}}" hint-placeholder-val="{{true}}">
+  <div style="position: relative;">
+  <div aria-hidden="true" style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; opacity: 0.8;">
+    <section style="flex: 999 1 460px; min-width: 0; padding: 18px 0 6px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px 14px;"><h2 style="margin: 0; font-size: 15px; font-weight: 800;">Needs action</h2><span class="gh" style="width: 56px; height: 12px;"></span></div>
+      <div class="trow thead" aria-hidden="true" style="padding: 0 18px 10px; border-bottom: 1px solid #E6DFCB;"><span class="" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446;">Escrow</span><span class="thide" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446;">Role</span><span class="" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446; text-align: right;">Amount</span><span class="" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446;">Status</span><span class="thide" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446; text-align: right;">Deadline</span></div>
+      <ul style="margin: 0; padding: 0; list-style: none;"><li class="trow" style="padding: 16px 18px; border-bottom: 1px solid #EFEADA;"><span style="display: flex; flex-direction: column; gap: 8px;"><span class="gh" style="width: 44px; height: 10px;"></span><span class="gh" style="width: 62%; height: 14px;"></span></span><span class="gh thide" style="width: 60%; height: 12px;"></span><span class="gh" style="justify-self: end; width: 70%; height: 18px;"></span><span class="gh" style="width: 84px; height: 24px; border-radius: 999px;"></span><span class="gh thide" style="justify-self: end; width: 50%; height: 12px;"></span></li><li class="trow" style="padding: 16px 18px; border-bottom: 1px solid #EFEADA;"><span style="display: flex; flex-direction: column; gap: 8px;"><span class="gh" style="width: 44px; height: 10px;"></span><span class="gh" style="width: 48%; height: 14px;"></span></span><span class="gh thide" style="width: 60%; height: 12px;"></span><span class="gh" style="justify-self: end; width: 70%; height: 18px;"></span><span class="gh" style="width: 84px; height: 24px; border-radius: 999px;"></span><span class="gh thide" style="justify-self: end; width: 50%; height: 12px;"></span></li><li class="trow" style="padding: 16px 18px; border-bottom: 1px solid #EFEADA;"><span style="display: flex; flex-direction: column; gap: 8px;"><span class="gh" style="width: 44px; height: 10px;"></span><span class="gh" style="width: 56%; height: 14px;"></span></span><span class="gh thide" style="width: 60%; height: 12px;"></span><span class="gh" style="justify-self: end; width: 70%; height: 18px;"></span><span class="gh" style="width: 84px; height: 24px; border-radius: 999px;"></span><span class="gh thide" style="justify-self: end; width: 50%; height: 12px;"></span></li><li class="trow" style="padding: 16px 18px; border-bottom: 1px solid #EFEADA;"><span style="display: flex; flex-direction: column; gap: 8px;"><span class="gh" style="width: 44px; height: 10px;"></span><span class="gh" style="width: 40%; height: 14px;"></span></span><span class="gh thide" style="width: 60%; height: 12px;"></span><span class="gh" style="justify-self: end; width: 70%; height: 18px;"></span><span class="gh" style="width: 84px; height: 24px; border-radius: 999px;"></span><span class="gh thide" style="justify-self: end; width: 50%; height: 12px;"></span></li></ul>
+    </section>
+    <section style="flex: 1 1 280px; min-width: 0; padding: 18px; background: #15110A; color: #F8F4E6; border-radius: 26px; display: flex; flex-direction: column; gap: 4px;">
+      <h2 style="margin: 0 0 8px; font-size: 15px; font-weight: 800;">Activity</h2><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #2A241A;"><span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px;"><span class="ghd" style="width: 70%; height: 12px;"></span><span class="ghd" style="width: 40%; height: 10px;"></span></span><span class="ghd" style="width: 56px; height: 14px;"></span></div><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #2A241A;"><span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px;"><span class="ghd" style="width: 55%; height: 12px;"></span><span class="ghd" style="width: 40%; height: 10px;"></span></span><span class="ghd" style="width: 56px; height: 14px;"></span></div><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #2A241A;"><span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px;"><span class="ghd" style="width: 64%; height: 12px;"></span><span class="ghd" style="width: 40%; height: 10px;"></span></span><span class="ghd" style="width: 56px; height: 14px;"></span></div><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #2A241A;"><span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px;"><span class="ghd" style="width: 48%; height: 12px;"></span><span class="ghd" style="width: 40%; height: 10px;"></span></span><span class="ghd" style="width: 56px; height: 14px;"></span></div>
+    </section>
+  </div>
+  <div style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 72px; pointer-events: none;">
+    <div class="popin" style="pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 16px; padding: 12px 12px 12px 22px; background: #FFFFFF; border: 1.5px solid #15110A; border-radius: 999px; box-shadow: 0 24px 50px -28px rgba(21, 17, 10, 0.6);">
+      <span style="font-size: 14px; font-weight: 700;">Connect your wallet to see your escrows</span>
+      <button type="button" class="lift" onClick="{{openMain}}" style="min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: #D2F54B; color: #15110A; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Connect wallet</button>
+    </div>
+  </div>
+  </div>
+</sc-if>
+<sc-if value="{{connected}}" hint-placeholder-val="{{false}}">
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px;">
+    <section class="rise" aria-labelledby="need-h" style="flex: 999 1 460px; min-width: 0; padding: 18px 0 6px; background: #FFFFFF; border: 1px solid #E6DFCB; border-radius: 26px; animation-delay: 140ms;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px 14px;">
+        <h2 id="need-h" style="margin: 0; font-size: 15px; font-weight: 800;">Needs action</h2>
+        <a href="Dashboard.dc.html" style="font-size: 14px; font-weight: 700; text-underline-offset: 4px;">View all</a>
+      </div>
+      <div class="trow thead" aria-hidden="true" style="padding: 0 18px 10px; border-bottom: 1px solid #E6DFCB;"><span class="" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446;">Escrow</span><span class="thide" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446;">Role</span><span class="" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446; text-align: right;">Amount</span><span class="" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446;">Status</span><span class="thide" style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5446; text-align: right;">Deadline</span></div>
+      <ul style="margin: 0; padding: 0; list-style: none;"><sc-for list="{{rows}}" as="e" hint-placeholder-count="3">
+<li><a href="Escrow.dc.html" class="row trow" style="padding: 14px 18px; border-bottom: 1px solid #EFEADA; color: #15110A; text-decoration: none;">
+  <span style="min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+    <span style="display: flex; align-items: center; gap: 8px; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5A5446;"><sc-if value="{{e.need}}" hint-placeholder-val="{{false}}"><span class="pulse" style="width: 7px; height: 7px; border-radius: 999px; background: #5A2DE0;"></span></sc-if>{{e.id}}</span>
+    <span style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{e.title}}</span>
+  </span>
+  <span class="thide" style="font-size: 14px; color: #5A5446;">{{e.roleLabel}}</span>
+  <span style="display: flex; align-items: baseline; justify-content: flex-end; gap: 5px;"><span style="font-family: 'Anton', 'Impact', sans-serif; font-size: 18px; line-height: 1;">{{e.amount}}</span><span style="font-size: 11px; font-weight: 700; color: #5A5446;">USDC</span></span>
+  <span style="display: inline-flex; align-items: center; justify-self: start; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; {{e.chipStyle}}">{{e.chip}}</span>
+  <span class="thide" style="font-size: 14px; color: #5A5446; text-align: right;">{{e.when}}</span>
+</a></li></sc-for></ul>
+    </section>
+    <section class="rise" aria-labelledby="act-h" style="flex: 1 1 280px; min-width: 0; padding: 18px; background: #15110A; color: #F8F4E6; border-radius: 26px; display: flex; flex-direction: column; gap: 4px; animation-delay: 200ms;">
+      <h2 id="act-h" style="margin: 0 0 8px; font-size: 15px; font-weight: 800;">Activity</h2>
+      <sc-for list="{{recent}}" as="r" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #2A241A;">
+          <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 600;">{{r.text}}</span><span style="font-size: 12px; color: #A79F8A;">{{r.when}}</span></div>
+          <span style="font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 14px; {{r.amtStyle}}">{{r.amount}}</span>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</sc-if></main><nav class="dock" aria-label="App" style="position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 40; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end; padding: 8px 4px; background: #15110A; border-radius: 26px; box-shadow: 0 24px 40px -20px rgba(21, 17, 10, 0.6);"><a href="Setup.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; color: #D2F54B; font-size: 11px; font-weight: 700; text-decoration: none;"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 9.5L10 4l6.5 5.5V16a1 1 0 0 1-1 1H12v-4.5H8V17H4.5a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg><span style="color: #F8F4E6;">Home</span></a><a href="Dashboard.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; color: #C9C1AD; font-size: 11px; font-weight: 600; text-decoration: none;"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="4" width="14" height="5" rx="1.5" stroke="currentColor" stroke-width="1.9"></rect><rect x="3" y="11" width="14" height="5" rx="1.5" stroke="currentColor" stroke-width="1.9"></rect></svg><span style="color: #C9C1AD;">Escrows</span></a><a href="Create.dc.html" aria-label="New escrow" style="justify-self: center; width: 62px; height: 62px; margin-top: -30px; border-radius: 999px; background: #D2F54B; border: 5px solid #F8F4E6; color: #15110A; display: flex; align-items: center; justify-content: center; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path></svg></a><a href="Lookup.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; color: #C9C1AD; font-size: 11px; font-weight: 600; text-decoration: none;"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.9"></circle><path d="M13.2 13.2L17 17" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg><span style="color: #C9C1AD;">Find</span></a><a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; color: #C9C1AD; font-size: 11px; font-weight: 600; text-decoration: none;"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.8s5 5.4 5 9.2a5 5 0 0 1-10 0c0-3.8 5-9.2 5-9.2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></path></svg><span style="color: #C9C1AD;">Funds</span></a></nav>
+<sc-if value="{{modal}}" hint-placeholder-val="{{false}}">
+  <div class="fade" onKeyDown="{{onKey}}" style="position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(21, 17, 10, 0.55); backdrop-filter: blur(6px);">
+    <button type="button" tabIndex="-1" aria-label="Close" onClick="{{close}}" style="position: absolute; inset: 0; border: 0; background: transparent; cursor: default;"></button>
+    <div role="dialog" aria-modal="true" aria-labelledby="cw-title" class="popin" style="position: relative; width: min(480px, 100%); max-height: calc(100% - 8px); overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 24px; background: #F8F4E6; border-radius: 30px; box-shadow: 0 40px 80px -30px rgba(21, 17, 10, 0.7);">
+      <sc-if value="{{pickStep}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; align-items: flex-start; gap: 14px;">
+            <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px;">
+              <h2 id="cw-title" style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 25px; line-height: 1;">Connect a wallet</h2>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #5A5446;">{{ctxLine}}</p>
+            </div>
+            <button type="button" onClick="{{close}}" aria-label="Close" style="flex: 0 0 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1.5px solid #E6DFCB; border-radius: 999px; background: #FFFFFF; color: #15110A; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg></button>
+          </div>
+          <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px;">
+<li><button type="button" class="wrow" onClick="{{wl.varial.pick}}" disabled="{{wl.varial.disabled}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; padding: 10px 16px 10px 10px; border: 1.5px solid #E6DFCB; border-radius: 18px; background: #FFFFFF; color: #15110A; font: inherit; text-align: left; cursor: pointer; {{wl.varial.style}}">
+  <img src="/_blob/19605ce1b4e7aafed2aa49ab96ce4483" alt="" width="44" height="44" style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px; object-fit: cover; background: #FFFFFF; border: 1px solid #E6DFCB;">
+  <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Varial</span><span style="font-size: 13px; color: #5A5446;">{{wl.varial.note}}</span></span>
+  <sc-if value="{{wl.varial.busy}}" hint-placeholder-val="{{false}}"><svg class="spin" width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#E6DFCB" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg></sc-if>
+  <sc-if value="{{wl.varial.idle}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+</button></li>
+<li><button type="button" class="wrow" onClick="{{wl.xbull.pick}}" disabled="{{wl.xbull.disabled}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; padding: 10px 16px 10px 10px; border: 1.5px solid #E6DFCB; border-radius: 18px; background: #FFFFFF; color: #15110A; font: inherit; text-align: left; cursor: pointer; {{wl.xbull.style}}">
+  <img src="/_blob/f912a131d5ef8f830512e33b12b26b32" alt="" width="44" height="44" style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px; object-fit: cover; background: #FFFFFF; border: 1px solid #E6DFCB;">
+  <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">xBull</span><span style="font-size: 13px; color: #5A5446;">{{wl.xbull.note}}</span></span>
+  <sc-if value="{{wl.xbull.busy}}" hint-placeholder-val="{{false}}"><svg class="spin" width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#E6DFCB" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg></sc-if>
+  <sc-if value="{{wl.xbull.idle}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+</button></li>
+<li><button type="button" class="wrow" onClick="{{wl.lobstr.pick}}" disabled="{{wl.lobstr.disabled}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; padding: 10px 16px 10px 10px; border: 1.5px solid #E6DFCB; border-radius: 18px; background: #FFFFFF; color: #15110A; font: inherit; text-align: left; cursor: pointer; {{wl.lobstr.style}}">
+  <img src="/_blob/e78a3dd6e431d0eca1e06108f4573234" alt="" width="44" height="44" style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px; object-fit: cover; background: #FFFFFF; border: 1px solid #E6DFCB;">
+  <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Lobstr</span><span style="font-size: 13px; color: #5A5446;">{{wl.lobstr.note}}</span></span>
+  <sc-if value="{{wl.lobstr.busy}}" hint-placeholder-val="{{false}}"><svg class="spin" width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#E6DFCB" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg></sc-if>
+  <sc-if value="{{wl.lobstr.idle}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+</button></li>
+<li><button type="button" class="wrow" onClick="{{wl.albedo.pick}}" disabled="{{wl.albedo.disabled}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; padding: 10px 16px 10px 10px; border: 1.5px solid #E6DFCB; border-radius: 18px; background: #FFFFFF; color: #15110A; font: inherit; text-align: left; cursor: pointer; {{wl.albedo.style}}">
+  <img src="/_blob/48cc57dd04e625fecd5eb644d1185a82" alt="" width="44" height="44" style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px; object-fit: cover; background: #FFFFFF; border: 1px solid #E6DFCB;">
+  <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Albedo</span><span style="font-size: 13px; color: #5A5446;">{{wl.albedo.note}}</span></span>
+  <sc-if value="{{wl.albedo.busy}}" hint-placeholder-val="{{false}}"><svg class="spin" width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#E6DFCB" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg></sc-if>
+  <sc-if value="{{wl.albedo.idle}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+</button></li>
+<li><button type="button" class="wrow" onClick="{{wl.hana.pick}}" disabled="{{wl.hana.disabled}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; padding: 10px 16px 10px 10px; border: 1.5px solid #E6DFCB; border-radius: 18px; background: #FFFFFF; color: #15110A; font: inherit; text-align: left; cursor: pointer; {{wl.hana.style}}">
+  <img src="/_blob/9712979492f74112039205ea87923759" alt="" width="44" height="44" style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px; object-fit: cover; background: #FFFFFF; border: 1px solid #E6DFCB;">
+  <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; font-weight: 700;">Hana</span><span style="font-size: 13px; color: #5A5446;">{{wl.hana.note}}</span></span>
+  <sc-if value="{{wl.hana.busy}}" hint-placeholder-val="{{false}}"><svg class="spin" width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#E6DFCB" stroke-width="3" fill="none"></circle><path d="M13 3 A10 10 0 0 1 23 13" stroke="#5A2DE0" stroke-width="3" fill="none" stroke-linecap="round"></path></svg></sc-if>
+  <sc-if value="{{wl.hana.idle}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+</button></li></ul>
+          <p style="margin: 0; padding-top: 14px; border-top: 1px solid #E6DFCB; font-size: 13px; line-height: 1.5; color: #5A5446;">Only your public address is shared. No wallet? <a href="https://varialwallet.com" target="_blank" rel="noopener" style="font-weight: 700; color: #5A2DE0; text-underline-offset: 4px;">Get Varial</a></p>
+        </div>
+      </sc-if>
+      <sc-if value="{{doneStep}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 8px 0 4px; text-align: center;">
+          <svg width="190" height="124" viewBox="0 0 180 120" aria-hidden="true">
+            <g class="inL"><circle cx="66" cy="60" r="42" fill="none" stroke="#15110A" stroke-width="4"></circle></g>
+            <g class="inR"><circle cx="114" cy="60" r="42" fill="none" stroke="#15110A" stroke-width="4"></circle></g>
+            <path class="lens" d="M90 25.53 A42 42 0 0 1 90 94.47 A42 42 0 0 1 90 25.53 Z" fill="#5A2DE0"></path>
+          </svg>
+          <h2 id="cw-title" style="margin: 0; font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: 24px; line-height: 1; text-transform: uppercase;">Connected</h2>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 14px;"><span>{{walletName}}</span><span style="padding: 4px 10px; border-radius: 999px; background: #15110A; color: #F8F4E6; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px;">GCX4…7QPA</span></div>
+          
+          <button type="button" class="lift" onClick="{{close}}" style="display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 34px; border: 0; border-radius: 999px; background: #D2F54B; color: #15110A; font-family: 'Anton', 'Impact', sans-serif; font-size: 18px; text-transform: uppercase; cursor: pointer;">{{doneLabel}}</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startConnected":{"editor":"boolean","default":false,"section":"Prototype"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = Object.assign({ override: null, modal: false, ctx: 'main', step: 'pick', connecting: null, wallet: null, copied: false, walletOpen: false }, {});
+    this.mt = [];
+    this.ct = null;
+  }
+  componentWillUnmount() {
+    this.mt.forEach((t) => clearTimeout(t));
+    if (this.ct) clearTimeout(this.ct);
+  }
+  later(fn, ms) { this.mt.push(setTimeout(fn, ms)); }
+  open(ctx) { this.setState({ modal: true, ctx: ctx, step: 'pick', connecting: null, walletOpen: false }); }
+  close() { this.setState({ modal: false, connecting: null }); }
+  base() {
+    const s = this.state;
+    const start = this.props.startConnected ?? false;
+    const connected = s.override === null ? !!start : s.override === 'on';
+    const walletKey = s.wallet || 'varial';
+    const names = { varial: 'Varial', xbull: 'xBull', lobstr: 'Lobstr', albedo: 'Albedo', hana: 'Hana' };
+    const notes = { varial: 'Formerly Freighter', xbull: 'Extension or web', lobstr: 'Mobile app', albedo: 'Web, nothing to install', hana: 'Extension or mobile' };
+    const wl = {};
+    Object.keys(names).forEach((k) => {
+      const busy = s.connecting === k;
+      const other = !!s.connecting && !busy;
+      wl[k] = {
+        current: walletKey === k,
+        busy: busy,
+        idle: !busy,
+        disabled: !!s.connecting,
+        note: busy ? 'Approve the request in ' + names[k] + '…' : notes[k],
+        style: busy ? 'border-color: #15110A; box-shadow: 0 16px 30px -22px rgba(21, 17, 10, 0.7);' : (other ? 'opacity: 0.45;' : ''),
+        pick: () => {
+          if (this.state.connecting) return;
+          this.setState({ connecting: k });
+          this.later(() => this.setState({ connecting: null, step: 'done', wallet: k, override: 'on' }), 1300);
+        }
+      };
+    });
+    const ctxLines = {
+      main: 'Sisonke never sees your keys.',
+      new: 'Connect the wallet you’ll pay from.',
+      escrows: 'See every escrow you’re part of.',
+      act: 'Use the wallet that’s part of this escrow.',
+      money: 'Pick the wallet to fund.'
+    };
+    const doneLabels = { main: 'Continue', new: 'Continue', escrows: 'Continue', act: 'Continue', money: 'Continue' };
+    return {
+      connected: connected,
+      notConnected: !connected,
+      walletName: names[walletKey],
+      wl: wl,
+      copied: s.copied,
+      notCopied: !s.copied,
+      walletOpen: s.walletOpen && connected,
+      walletOpenStr: s.walletOpen && connected ? 'true' : 'false',
+      toggleWallet: () => this.setState({ walletOpen: !this.state.walletOpen }),
+      copy: () => {
+        this.setState({ copied: true });
+        if (this.ct) clearTimeout(this.ct);
+        this.ct = setTimeout(() => this.setState({ copied: false }), 1600);
+      },
+      disconnect: () => this.setState({ override: 'off', wallet: null, walletOpen: false }),
+      openMain: () => this.open('main'),
+      openNew: () => this.open('new'),
+      openEscrows: () => this.open('escrows'),
+      openAct: () => this.open('act'),
+      openMoney: () => this.open('money'),
+      modal: s.modal,
+      pickStep: s.step === 'pick',
+      doneStep: s.step === 'done',
+      doneLabel: doneLabels[s.ctx] || doneLabels.main,
+      ctxLine: ctxLines[s.ctx] || ctxLines.main,
+      close: () => this.close(),
+      onKey: (e) => { if (e && e.key === 'Escape') this.close(); }
+    };
+  }
+  screen(s, connected) {
+
+    const CHIP = {
+      created: ['Awaiting deposit', 'background: transparent; color: #5A5446; border: 1.5px dashed #8C8370;'],
+      funded: ['Locked', 'background: #D2F54B; color: #15110A; border: 1.5px solid #15110A;'],
+      disputed: ['In dispute', 'background: #5A2DE0; color: #FFFFFF; border: 1.5px solid #5A2DE0;'],
+      released: ['Released', 'background: #15110A; color: #F8F4E6; border: 1.5px solid #15110A;'],
+      refunded: ['Refunded', 'background: #E6DFCB; color: #15110A; border: 1.5px solid #E6DFCB;'],
+      split: ['Split', 'background: #FFFFFF; color: #5A2DE0; border: 1.5px solid #5A2DE0;'],
+      cancelled: ['Cancelled', 'background: #EFEADA; color: #5A5446; border: 1.5px solid #E6DFCB;']
+    };
+
+    const all = [
+      { id: '#0049', role: 'judging', title: 'Product photos', status: 'disputed', amount: '90.00', when: 'Decide now', need: true },
+      { id: '#0047', role: 'paying', title: 'Menu photos', status: 'created', amount: '120.00', when: '2 Nov', need: true },
+      { id: '#0042', role: 'paying', title: 'Café logo', status: 'funded', amount: '250.00', when: '6 Nov', need: true },
+      { id: '#0050', role: 'receiving', title: 'Brand guide', status: 'funded', amount: '600.00', when: '13 Nov', need: false },
+      { id: '#0038', role: 'receiving', title: 'Landing page design', status: 'released', amount: '350.00', when: '27 Oct', need: false },
+      { id: '#0035', role: 'paying', title: 'Website copy', status: 'released', amount: '400.00', when: '24 Oct', need: false },
+      { id: '#0031', role: 'paying', title: 'Packaging mockups', status: 'refunded', amount: '180.00', when: '19 Oct', need: false }
+    ];
+    const roleLabels = { paying: 'Paying', receiving: 'Receiving', judging: 'Arbiter' };
+    const dress = (e) => Object.assign({}, e, { roleLabel: roleLabels[e.role], chip: CHIP[e.status][0], chipStyle: CHIP[e.status][1] });
+
+    const dash = { need: '3', out: '250.00', in: '600.00', done: '3' };
+    return {
+      st: dash,
+      rows: all.filter((e) => e.need).map(dress),
+      recent: [
+        { text: 'Landing page design', when: 'Paid to you · 27 Oct', amount: '+350.00', amtStyle: 'color: #D2F54B;' },
+        { text: 'Website copy', when: 'You released · 24 Oct', amount: '−400.00', amtStyle: 'color: #F8F4E6;' },
+        { text: 'Packaging mockups', when: 'Refunded to you · 19 Oct', amount: '+180.00', amtStyle: 'color: #D2F54B;' }
+      ]
+    };
+  }
+  renderVals() {
+    const b = this.base();
+    return Object.assign(b, this.screen(this.state, b.connected));
+  }
+}
+</script>
+</body>
+</html>
