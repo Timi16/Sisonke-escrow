@@ -13,9 +13,7 @@
     "sync": "node scripts/sync-deployment.mjs",
     "bindings": "cd .. && OUT_DIR=web/contract scripts/bindings.sh",
     "e2e": "node e2e/app.e2e.mjs",
-    "screens": "node e2e/screens.e2e.mjs",
-    "demo": "node e2e/demo.e2e.mjs",
-    "demo:mp4": "node e2e/to-mp4.mjs"
+    "screens": "node e2e/screens.e2e.mjs"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "2.7.1",

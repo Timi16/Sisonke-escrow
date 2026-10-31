@@ -93,8 +93,7 @@ export async function walletContext(browser, { keypair = null, address, mobile =
     network: "TESTNET",
     signed: 0,
   };
-  const view = mobile ? PHONE : DESKTOP;
-  const ctx = await browser.newContext({ ...view, ...(video ? { recordVideo: { dir: video, size: view.viewport } } : {}) });
+  const ctx = await browser.newContext({ ...(mobile ? PHONE : DESKTOP), ...(video ? { recordVideo: { dir: video } } : {}) });
   await ctx.exposeFunction("__e2eAddress", () => wallet.address);
   await ctx.exposeFunction("__e2eNetwork", () => wallet.network);
   await ctx.exposeFunction("__e2eSign", async (xdr) => {
